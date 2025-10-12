@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import hre from "hardhat";
 import { EvmPriceServiceConnection } from "@pythnetwork/pyth-evm-js";
 import { config } from "dotenv";
 
@@ -17,7 +17,7 @@ async function main() {
   console.log("📝 Testing with account:", deployer.address);
 
   // Get ChimeraProtocol contract
-  const ChimeraProtocol = await ethers.getContractFactory("ChimeraProtocol");
+  const ChimeraProtocol = await hre.ethers.getContractFactory("ChimeraProtocol");
   const chimera = ChimeraProtocol.attach(chimeraAddress);
 
   // Pyth price service connection
@@ -37,18 +37,18 @@ async function main() {
     console.log("✅ Successfully fetched price update data");
 
     // Get Pyth contract directly
-    const pythContract = await ethers.getContractAt("IPyth", "0xa2aa501b19aff244d90cc15a4cf739d2725b5729");
+    const pythContract = await hre.ethers.getContractAt("IPyth", "0xa2aa501b19aff244d90cc15a4cf739d2725b5729");
     
     // Get update fee
     const updateFee = await pythContract.getUpdateFee(priceUpdateData);
-    console.log("💰 Update fee:", ethers.formatEther(updateFee), "HBAR");
+    console.log("💰 Update fee:", hre.ethers.formatEther(updateFee), "HBAR");
 
     // Test creating a price-based market
     console.log("\n📊 Creating test price market...");
     
     const currentTime = Math.floor(Date.now() / 1000);
     const endTime = currentTime + 3600; // 1 hour from now
-    const targetPrice = ethers.parseUnits("3000", 8); // $3000 with 8 decimals
+    const targetPrice = hre.ethers.parseUnits("3000", 8); // $3000 with 8 decimals
 
     const tx = await chimera.createMarket(
       "ETH Price Prediction",
@@ -57,8 +57,8 @@ async function main() {
       "Below $3000",
       1, // category
       endTime,
-      ethers.parseUnits("10", 18), // min bet: 10 PYUSD
-      ethers.parseUnits("1000", 18), // max bet: 1000 PYUSD
+      hre.ethers.parseUnits("10", 18), // min bet: 10 PYUSD
+      hre.ethers.parseUnits("1000", 18), // max bet: 1000 PYUSD
       "https://example.com/eth-image.png",
       0, // MarketType.PriceDirection
       priceIds[0], // ETH/USD price ID
@@ -77,15 +77,15 @@ async function main() {
     console.log("  - ID:", market.id.toString());
     console.log("  - Title:", market.title);
     console.log("  - Pyth Price ID:", market.pythPriceId);
-    console.log("  - Target Price:", ethers.formatUnits(market.targetPrice, 8));
+    console.log("  - Target Price:", hre.ethers.formatUnits(market.targetPrice, 8));
     console.log("  - Price Above:", market.priceAbove);
 
     // Test getting current price (without updating)
     try {
       const currentPrice = await pythContract.getPrice(priceIds[0]);
       console.log("\n💹 Current ETH price:");
-      console.log("  - Price:", ethers.formatUnits(currentPrice.price, 8));
-      console.log("  - Confidence:", ethers.formatUnits(currentPrice.conf, 8));
+      console.log("  - Price:", hre.ethers.formatUnits(currentPrice.price, 8));
+      console.log("  - Confidence:", hre.ethers.formatUnits(currentPrice.conf, 8));
       console.log("  - Publish Time:", new Date(Number(currentPrice.publishTime) * 1000).toISOString());
     } catch (error) {
       console.log("⚠️  Current price not available (needs update)");

@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import hre from "hardhat";
 import { config } from "dotenv";
 import fs from "fs";
 
@@ -6,7 +6,11 @@ config();
 
 async function main() {
   console.log("🚀 Deploying ChimeraProtocol to Hedera Testnet...");
-
+  
+  // Hardhat 3'te network connection kullanarak ethers'e erişim
+  const { network } = hre;
+  const { ethers } = await network.connect();
+  
   // Get the deployer account
   const [deployer] = await ethers.getSigners();
   console.log("📝 Deploying with account:", deployer.address);

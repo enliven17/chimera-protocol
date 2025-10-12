@@ -11,7 +11,7 @@ networks:
     contracts:
       - name: ChimeraProtocol
         address: 
-          - "0xeF2E2B87A82c10F68183f7654784eEbFeC160b44" # ChimeraProtocol contract (deployed)
+          - "0x7Bee0AB565e6aB33009647174Eb8cd55B56EcD7c" # ChimeraProtocol contract (Hardhat 3 deployment)
         handler: src/EventHandlers.ts
         events:
           - event: MarketCreated(uint256 indexed marketId, string title, address indexed creator, uint8 marketType)

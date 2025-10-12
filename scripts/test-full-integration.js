@@ -1,25 +1,27 @@
-import { ethers } from "hardhat";
+import hre from "hardhat";
 import { config } from "dotenv";
 
 config();
 
-/**
- * Full integration test for ChimeraProtocol
- * Tests all components as specified in eth.md
- */
-
 async function testFullIntegration() {
   console.log("🧪 Full ChimeraProtocol Integration Test (eth.md compliance)...");
+  
+  // Try to get network connection
+  const network = await hre.network;
+  console.log("Network:", network.name);
+  
+  // Get the deployer account using a different approach
+  const provider = new hre.ethers.JsonRpcProvider(network.config.url);
+  const wallet = new hre.ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  const deployer = wallet;
+  console.log("📝 Testing with account:", deployer.address);
 
   const chimeraAddress = process.env.NEXT_PUBLIC_CHIMERA_CONTRACT_ADDRESS;
   const pyusdAddress = process.env.NEXT_PUBLIC_PYUSD_CONTRACT_ADDRESS;
   const pythAddress = process.env.NEXT_PUBLIC_PYTH_CONTRACT_ADDRESS;
 
-  const [deployer] = await ethers.getSigners();
-  console.log("📝 Testing with account:", deployer.address);
-
   // Get contracts
-  const ChimeraProtocol = await ethers.getContractFactory("ChimeraProtocol");
+  const ChimeraProtocol = await hre.ethers.getContractFactory("ChimeraProtocol");
   const chimera = ChimeraProtocol.attach(chimeraAddress);
 
   console.log("\n🔗 Contract Addresses:");
@@ -41,7 +43,7 @@ async function testFullIntegration() {
 
     // Test 2: PYUSD Integration ✅
     console.log("\n2️⃣ Testing PYUSD integration...");
-    const pyusdContract = await ethers.getContractAt("IERC20", pyusdAddress);
+    const pyusdContract = await hre.ethers.getContractAt("IERC20", pyusdAddress);
     
     try {
       const name = await pyusdContract.name();
@@ -58,7 +60,7 @@ async function testFullIntegration() {
 
     // Test 3: Pyth Oracle Integration ✅
     console.log("\n3️⃣ Testing Pyth Oracle integration...");
-    const pythContract = await ethers.getContractAt("IPyth", pythAddress);
+    const pythContract = await hre.ethers.getContractAt("IPyth", pythAddress);
     
     try {
       const validTimePeriod = await pythContract.getValidTimePeriod();
@@ -70,8 +72,8 @@ async function testFullIntegration() {
 
     // Test 4: Agent Delegation System ✅
     console.log("\n4️⃣ Testing agent delegation system...");
-    const testAgent = ethers.getAddress("0x742d35cc6634c0532925a3b8d4c9db96590c6c87");
-    const maxBet = ethers.parseUnits("100", 18);
+    const testAgent = hre.ethers.getAddress("0x742d35cc6634c0532925a3b8d4c9db96590c6c87");
+    const maxBet = hre.ethers.parseUnits("100", 18);
 
     const delegateTx = await chimera.delegateToAgent(testAgent, maxBet);
     await delegateTx.wait();
@@ -81,7 +83,7 @@ async function testFullIntegration() {
 
     console.log("✅ Agent delegation working");
     console.log("  - Is Delegated:", isDelegated);
-    console.log("  - Max Bet:", ethers.formatUnits(agentMaxBet, 18), "PYUSD");
+    console.log("  - Max Bet:", hre.ethers.formatUnits(agentMaxBet, 18), "PYUSD");
 
     // Test 5: Market Creation ✅
     console.log("\n5️⃣ Testing market creation...");
@@ -96,8 +98,8 @@ async function testFullIntegration() {
       "Option B",
       1, // category
       endTime,
-      ethers.parseUnits("1", 18), // min bet
-      ethers.parseUnits("100", 18), // max bet
+      hre.ethers.parseUnits("1", 18), // min bet
+      hre.ethers.parseUnits("100", 18), // max bet
       "https://example.com/test.png",
       1, // CustomEvent
       "0x0000000000000000000000000000000000000000000000000000000000000000",
@@ -166,17 +168,13 @@ async function testFullIntegration() {
   }
 }
 
+async function main() {
+  await testFullIntegration();
+}
+
 main()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error("❌ Test failed:", error);
     process.exit(1);
   });
-
-async function main() {
-  await testFullIntegration();
-}
-
-if (require.main === module) {
-  main();
-}
