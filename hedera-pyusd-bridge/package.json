@@ -1,0 +1,55 @@
+{
+  "name": "hedera-pyusd-bridge",
+  "version": "1.0.0",
+  "description": "PYUSD Bridge from Ethereum Sepolia to Hedera Testnet using LayerZero",
+  "main": "index.js",
+  "scripts": {
+    "compile": "hardhat compile",
+    "test": "hardhat test",
+    "demo": "node scripts/demonstrate-bridge.js",
+    "deploy:hedera": "hardhat run scripts/deploy-to-hedera.js --network hedera-testnet",
+    "deploy:ethereum": "hardhat run scripts/deploy-to-ethereum.js --network ethereum-sepolia",
+    "bridge:pyusd": "hardhat run scripts/bridge-pyusd.js --network ethereum-sepolia",
+    "deploy:ethereum-bridge": "hardhat run scripts/deploy-ethereum-bridge.js --network ethereum-sepolia",
+    "deploy:hedera-bridge": "hardhat run scripts/deploy-hedera-bridge.js --network hedera-testnet",
+    "bridge:simple": "hardhat run scripts/bridge-pyusd-simple.js --network ethereum-sepolia",
+    "bridge:process": "hardhat run scripts/process-bridge-transfer.js --network hedera-testnet",
+    "check:pyusd": "hardhat run scripts/check-pyusd-balance.js --network ethereum-sepolia",
+    "check:hedera": "hardhat run scripts/check-hedera-balance.js --network hedera-testnet"
+  },
+  "keywords": [
+    "hedera",
+    "layerzero",
+    "pyusd",
+    "bridge",
+    "defi"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "@layerzerolabs/lz-evm-oapp-v2": "^2.3.44",
+    "@layerzerolabs/lz-evm-protocol-v2": "^3.0.139",
+    "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
+    "@nomicfoundation/hardhat-ethers": "^3.1.0",
+    "@nomicfoundation/hardhat-network-helpers": "^1.1.0",
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "@nomicfoundation/hardhat-verify": "^2.1.1",
+    "@openzeppelin/contracts": "^5.0.0",
+    "@typechain/ethers-v6": "^0.5.1",
+    "@typechain/hardhat": "^9.1.0",
+    "@types/chai": "^4.3.20",
+    "@types/mocha": "^10.0.10",
+    "@types/node": "^24.7.2",
+    "chai": "^4.5.0",
+    "ethers": "^6.15.0",
+    "hardhat": "^2.19.0",
+    "hardhat-gas-reporter": "^1.0.10",
+    "solidity-coverage": "^0.8.16",
+    "ts-node": "^10.9.2",
+    "typechain": "^8.3.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "dotenv": "^16.3.1"
+  }
+}
