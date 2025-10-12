@@ -1,5 +1,8 @@
-const { ethers } = require("hardhat");
-require("dotenv").config();
+import { ethers } from "hardhat";
+import { config } from "dotenv";
+import fs from "fs";
+
+config();
 
 async function main() {
   console.log("🚀 Deploying ChimeraProtocol to Hedera Testnet...");
@@ -12,9 +15,9 @@ async function main() {
   const balance = await deployer.provider.getBalance(deployer.address);
   console.log("💰 Account balance:", ethers.formatEther(balance), "HBAR");
 
-  // Contract addresses on Hedera Testnet
-  const PYTH_CONTRACT = "0x2880aB155794e7179c9eE2e38200202908C17B43"; // Pyth Oracle on Hedera Testnet
-  const PYUSD_CONTRACT = "0x95bc083e6911DeBc46b36cDCE8996fAEB28bf9A6"; // Our wrapped PYUSD
+  // Contract addresses on Hedera Testnet (verified addresses)
+  const PYTH_CONTRACT = "0xa2aa501b19aff244d90cc15a4cf739d2725b5729"; // Pyth Price Feeds on Hedera Testnet (correct address)
+  const PYUSD_CONTRACT = "0x9D5F12DBe903A0741F675e4Aa4454b2F7A010aB4"; // wPYUSD from hedera-pyusd-bridge (deployed)
 
   console.log("🔗 Using Pyth Oracle:", PYTH_CONTRACT);
   console.log("💵 Using PYUSD Token:", PYUSD_CONTRACT);
@@ -60,7 +63,6 @@ async function main() {
     }
   };
 
-  const fs = require("fs");
   const deploymentPath = `deployments/chimera-hedera-testnet-${Date.now()}.json`;
   
   // Create deployments directory if it doesn't exist

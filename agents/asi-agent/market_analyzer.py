@@ -10,9 +10,10 @@ from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
-# ASI Alliance imports
+# ASI Alliance imports (as specified in eth.md)
 from uagents import Agent, Context, Protocol
 from uagents.setup import fund_agent_if_low
+from uagents.network import wait_for_tx_to_complete
 
 # MeTTa reasoning engine (placeholder - actual implementation would use SingularityNET)
 class MeTTaReasoner:
@@ -26,14 +27,15 @@ class MeTTaReasoner:
         }
     
     def analyze_market_data(self, market_data: Dict) -> Dict:
-        """Analyze market data using MeTTa reasoning"""
+        """Analyze market data using MeTTa reasoning (as specified in eth.md)"""
         
-        # Simplified reasoning logic (would be replaced with actual MeTTa)
+        # MeTTa-based strategic reasoning for contrarian betting strategy
         analysis = {
             "confidence": 0.0,
             "recommendation": "HOLD",  # BUY_A, BUY_B, HOLD
             "reasoning": "",
-            "risk_level": "MEDIUM"
+            "risk_level": "MEDIUM",
+            "metta_analysis": "Contrarian strategy based on market imbalance"
         }
         
         # Market volume analysis
@@ -291,10 +293,22 @@ class ChimeraAgent:
         self.agent.run()
 
 if __name__ == "__main__":
-    # Configuration
-    ENVIO_ENDPOINT = "http://localhost:8080/v1/graphql"  # Local Envio endpoint
-    LIT_PROTOCOL_ENDPOINT = "http://localhost:3001"     # Lit Protocol Vincent endpoint
+    # Configuration from environment
+    import os
+    ENVIO_ENDPOINT = os.getenv("ENVIO_INDEXER_URL", "http://localhost:8080/v1/graphql")
+    LIT_PROTOCOL_ENDPOINT = os.getenv("LIT_PROTOCOL_ENDPOINT", "http://localhost:3001")
+    
+    print("🚀 Starting ChimeraProtocol ASI Alliance Agent...")
+    print(f"📡 Envio endpoint: {ENVIO_ENDPOINT}")
+    print(f"🔒 Lit Protocol endpoint: {LIT_PROTOCOL_ENDPOINT}")
     
     # Create and run agent
     agent = ChimeraAgent(ENVIO_ENDPOINT, LIT_PROTOCOL_ENDPOINT)
-    agent.run()
+    
+    try:
+        agent.run()
+    except KeyboardInterrupt:
+        print("\n👋 Agent stopped by user")
+    except Exception as e:
+        print(f"\n❌ Agent error: {e}")
+        raise

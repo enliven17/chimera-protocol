@@ -6,6 +6,8 @@
 const { LitNodeClient } = require("@lit-protocol/lit-node-client");
 const { LitNetwork } = require("@lit-protocol/constants");
 const { ethers } = require("ethers");
+// Hedera Agent Kit integration (as specified in eth.md)
+const { HederaAgentKit } = require("@hashgraph/hedera-agent-kit");
 
 class ChimeraVincentSkill {
   constructor(config) {
@@ -13,6 +15,7 @@ class ChimeraVincentSkill {
     this.litNodeClient = null;
     this.provider = null;
     this.chimeraContract = null;
+    this.hederaAgentKit = null; // Hedera Agent Kit for secure Hedera EVM interaction
     
     this.init();
   }
@@ -28,6 +31,12 @@ class ChimeraVincentSkill {
     
     await this.litNodeClient.connect();
     console.log("✅ Connected to Lit Protocol network");
+    
+    // Initialize Hedera Agent Kit (as specified in eth.md)
+    this.hederaAgentKit = new HederaAgentKit({
+      network: "testnet",
+      rpcUrl: this.config.hederaRpcUrl
+    });
     
     // Initialize Hedera provider
     this.provider = new ethers.JsonRpcProvider(this.config.hederaRpcUrl);
@@ -277,19 +286,20 @@ class ChimeraVincentSkill {
   }
 }
 
-// Skill configuration
+// Skill configuration from environment
 const config = {
-  hederaRpcUrl: "https://testnet.hashio.io/api",
-  chimeraContractAddress: process.env.CHIMERA_CONTRACT_ADDRESS,
-  pyusdContractAddress: process.env.PYUSD_CONTRACT_ADDRESS,
-  agentAddress: process.env.AGENT_ADDRESS,
+  hederaRpcUrl: process.env.HEDERA_RPC_URL || "https://testnet.hashio.io/api",
+  chimeraContractAddress: process.env.NEXT_PUBLIC_CHIMERA_CONTRACT_ADDRESS,
+  pyusdContractAddress: process.env.NEXT_PUBLIC_PYUSD_CONTRACT_ADDRESS,
+  agentAddress: process.env.AGENT_ADDRESS || "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87",
   chimeraAbi: [
     "function isAgentDelegated(address user, address agent) view returns (bool)",
     "function getAgentMaxBet(address agent) view returns (uint256)",
     "function getMarket(uint256 marketId) view returns (tuple)",
     "function placeBetForUser(uint256 marketId, uint8 option, uint256 amount, address user) external"
   ],
-  authSig: null // Would be set during initialization
+  authSig: null, // Would be set during initialization
+  litNetwork: process.env.LIT_NETWORK || "cayenne"
 };
 
 // Export for use in Vincent App

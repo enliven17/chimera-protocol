@@ -204,8 +204,9 @@ contract ChimeraProtocol is Ownable, ReentrancyGuard, Pausable {
         require(_amount >= market.minBet, "Bet amount too low");
         require(_amount <= market.maxBet, "Bet amount too high");
         
-        // Transfer PYUSD from user to contract
-        address payer = _agent != address(0) ? _agent : _user;
+        // Transfer PYUSD from user to contract using transferFrom (as specified in eth.md)
+        // For agent bets, the agent must have approval from the user
+        address payer = _agent != address(0) ? _user : _user; // Always from user's balance
         pyusdToken.safeTransferFrom(payer, address(this), _amount);
         
         UserPosition storage position = userPositions[_marketId][_user];
@@ -251,7 +252,44 @@ contract ChimeraProtocol is Ownable, ReentrancyGuard, Pausable {
         _distributeRewards(_marketId);
     }
     
-    // Resolve a price-based market using Pyth Oracle
+    // Resolve a price-based market using Pyth Oracle (Pull Oracle implementation)
+    function settleMarket(uint256 _marketId, bytes[] calldata _priceUpdateData) external payable nonReentrant {
+        Market storage market = markets[_marketId];
+        require(market.id != 0, "Market does not exist");
+        require(!market.resolved, "Market already resolved");
+        require(market.marketType == MarketType.PriceDirection, "Not a price market");
+        require(block.timestamp >= market.endTime, "Market not ended yet");
+        
+        // Update price feeds using Pyth Pull Oracle
+        uint fee = pyth.getUpdateFee(_priceUpdateData);
+        require(msg.value >= fee, "Insufficient fee for price update");
+        pyth.updatePriceFeeds{value: fee}(_priceUpdateData);
+        
+        // Get the latest price using Pyth's getPrice method
+        PythStructs.Price memory price = pyth.getPrice(market.pythPriceId);
+        require(price.publishTime <= market.endTime, "Price published after market end");
+        require(price.conf > 0, "Invalid price confidence");
+        
+        // Determine outcome based on price vs target (as specified in eth.md)
+        uint8 outcome;
+        if (market.priceAbove) {
+            outcome = price.price >= market.targetPrice ? 0 : 1; // 0 = optionA wins (price above), 1 = optionB wins (price below)
+        } else {
+            outcome = price.price <= market.targetPrice ? 0 : 1; // 0 = optionA wins (price below), 1 = optionB wins (price above)
+        }
+        
+        market.resolved = true;
+        market.outcome = outcome;
+        market.status = MarketStatus.Resolved;
+        
+        emit MarketResolved(_marketId, outcome, msg.sender, price.price);
+        emit PythPriceUpdated(market.pythPriceId, price.price, uint64(price.publishTime));
+        
+        // Automatically distribute rewards
+        _distributeRewards(_marketId);
+    }
+    
+    // Legacy function name for backward compatibility
     function resolvePriceMarket(uint256 _marketId, bytes[] calldata _priceUpdateData) external payable nonReentrant {
         Market storage market = markets[_marketId];
         require(market.id != 0, "Market does not exist");
@@ -259,15 +297,17 @@ contract ChimeraProtocol is Ownable, ReentrancyGuard, Pausable {
         require(market.marketType == MarketType.PriceDirection, "Not a price market");
         require(block.timestamp >= market.endTime, "Market not ended yet");
         
-        // Update price feeds
+        // Update price feeds using Pyth Pull Oracle
         uint fee = pyth.getUpdateFee(_priceUpdateData);
+        require(msg.value >= fee, "Insufficient fee for price update");
         pyth.updatePriceFeeds{value: fee}(_priceUpdateData);
         
-        // Get the latest price
+        // Get the latest price using Pyth's getPrice method
         PythStructs.Price memory price = pyth.getPrice(market.pythPriceId);
-        require(price.publishTime <= market.endTime, "Price too recent");
+        require(price.publishTime <= market.endTime, "Price published after market end");
+        require(price.conf > 0, "Invalid price confidence");
         
-        // Determine outcome based on price vs target
+        // Determine outcome based on price vs target (as specified in eth.md)
         uint8 outcome;
         if (market.priceAbove) {
             outcome = price.price >= market.targetPrice ? 0 : 1; // 0 = optionA wins (price above), 1 = optionB wins (price below)
@@ -342,7 +382,7 @@ contract ChimeraProtocol is Ownable, ReentrancyGuard, Pausable {
         position.optionBShares = 0;
         position.totalInvested = 0;
         
-        // Transfer PYUSD reward
+        // Transfer PYUSD reward using transfer (as specified in eth.md)
         pyusdToken.safeTransfer(msg.sender, userReward);
     }
     

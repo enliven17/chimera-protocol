@@ -1,0 +1,32 @@
+{
+  "name": "chimera-vincent-skill",
+  "version": "1.0.0",
+  "description": "ChimeraProtocol Lit Protocol Vincent Skill for secure agent execution",
+  "main": "chimera-vincent-skill.js",
+  "scripts": {
+    "start": "node chimera-vincent-skill.js",
+    "dev": "nodemon chimera-vincent-skill.js",
+    "test": "node test-vincent-skill.js"
+  },
+  "dependencies": {
+    "@lit-protocol/lit-node-client": "^6.4.10",
+    "@lit-protocol/constants": "^6.4.10",
+    "@lit-protocol/auth-helpers": "^6.4.10",
+    "@hashgraph/hedera-agent-kit": "^1.0.0",
+    "ethers": "^6.13.4",
+    "express": "^4.18.2",
+    "dotenv": "^16.3.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": [
+    "lit-protocol",
+    "vincent-skill",
+    "hedera",
+    "defi",
+    "prediction-markets"
+  ],
+  "author": "ChimeraProtocol Team",
+  "license": "MIT"
+}

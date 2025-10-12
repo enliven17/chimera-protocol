@@ -11,7 +11,7 @@ networks:
     contracts:
       - name: ChimeraProtocol
         address: 
-          - "0x0e63645e09051ccB844c002Ff52Cc57AB086C826" # ChimeraProtocol contract
+          - "0xeF2E2B87A82c10F68183f7654784eEbFeC160b44" # ChimeraProtocol contract (deployed)
         handler: src/EventHandlers.ts
         events:
           - event: MarketCreated(uint256 indexed marketId, string title, address indexed creator, uint8 marketType)

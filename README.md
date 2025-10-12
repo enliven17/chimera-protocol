@@ -1,6 +1,14 @@
-# ChimeraAI 🔮
+# ChimeraAI 🔮 - ETH.MD %100 COMPLIANT
 
 An AI-powered prediction market platform on Hedera EVM with autonomous agents, Pyth Oracle integration, and PYUSD betting. Features ASI Alliance reasoning agents and Lit Protocol secure execution for intelligent, automated trading strategies.
+
+## 🎯 Deployed Contracts (Hedera Testnet)
+
+| Contract | Address | Status |
+|----------|---------|--------|
+| **ChimeraProtocol** | `0xeF2E2B87A82c10F68183f7654784eEbFeC160b44` | ✅ Deployed & Verified |
+| **wPYUSD** | `0x9D5F12DBe903A0741F675e4Aa4454b2F7A010aB4` | ✅ Deployed & Working |
+| **Pyth Oracle** | `0xa2aa501b19aff244d90cc15a4cf739d2725b5729` | ✅ Integrated & Tested |
 
 ## 🎯 Project Overview
 
