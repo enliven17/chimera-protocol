@@ -1,0 +1,36 @@
+name: chimera-protocol
+description: ChimeraProtocol prediction market indexer for Hedera EVM
+version: 1.0.0
+
+networks:
+  - id: 296
+    name: hedera-testnet
+    rpc_config:
+      url: https://testnet.hashio.io/api
+    start_block: latest
+    contracts:
+      - name: ChimeraProtocol
+        address: 
+          - "0x0e63645e09051ccB844c002Ff52Cc57AB086C826" # ChimeraProtocol contract
+        handler: src/EventHandlers.ts
+        events:
+          - event: MarketCreated(uint256 indexed marketId, string title, address indexed creator, uint8 marketType)
+          - event: BetPlaced(uint256 indexed marketId, address indexed user, address indexed agent, uint8 option, uint256 amount, uint256 shares)
+          - event: MarketResolved(uint256 indexed marketId, uint8 outcome, address indexed resolver, int64 finalPrice)
+          - event: AgentDelegationUpdated(address indexed user, address indexed agent, bool approved, uint256 maxBetAmount)
+          - event: PythPriceUpdated(bytes32 indexed priceId, int64 price, uint64 timestamp)
+
+field_selection:
+  transaction_fields:
+    - "hash"
+    - "transactionIndex" 
+    - "from"
+    - "to"
+    - "value"
+    - "gasUsed"
+    - "gasPrice"
+    - "input"
+  block_fields:
+    - "number"
+    - "timestamp"
+    - "hash"
