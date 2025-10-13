@@ -14,7 +14,7 @@ contracts:
       - event: "PythPriceUpdated(bytes32 indexed priceId, int64 price, uint64 timestamp)"
 
 networks:
-  - id: "296"
+  - id: 296
     rpc_config:
       url: https://testnet.hashio.io/api
     start_block: 26000000
