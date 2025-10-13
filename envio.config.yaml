@@ -1,18 +1,19 @@
 name: chimera-protocol
 description: ChimeraProtocol prediction market indexer for Hedera EVM
+ecosystem: evm
 schema: schema.graphql
+
 contracts:
   - name: ChimeraProtocol
-    handler: src/EventHandlers.ts
-    events:
-      - event: MarketCreated(uint256 indexed marketId, string title, address indexed creator, uint8 marketType)
-      - event: BetPlaced(uint256 indexed marketId, address indexed user, address indexed agent, uint8 option, uint256 amount, uint256 shares)
-      - event: MarketResolved(uint256 indexed marketId, uint8 outcome, address indexed resolver, int64 finalPrice)
-      - event: AgentDelegationUpdated(address indexed user, address indexed agent, bool approved, uint256 maxBetAmount)
-      - event: PythPriceUpdated(bytes32 indexed priceId, int64 price, uint64 timestamp)
+    abi:
+      - event: "MarketCreated(uint256 indexed marketId, string title, address indexed creator, uint8 marketType)"
+      - event: "BetPlaced(uint256 indexed marketId, address indexed user, address indexed agent, uint8 option, uint256 amount, uint256 shares)"
+      - event: "MarketResolved(uint256 indexed marketId, uint8 outcome, address indexed resolver, int64 finalPrice)"
+      - event: "AgentDelegationUpdated(address indexed user, address indexed agent, bool approved, uint256 maxBetAmount)"
+      - event: "PythPriceUpdated(bytes32 indexed priceId, int64 price, uint64 timestamp)"
 
 networks:
-  - id: 296
+  - id: "296"
     rpc_config:
       url: https://testnet.hashio.io/api
     start_block: 26000000
