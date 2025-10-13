@@ -7,12 +7,13 @@ import { MarketError } from "@/components/market/market-error";
 import { MarketLoading } from "@/components/market/market-loading";
 import { MarketActivity } from "@/components/market/market-activity";
 import { MyBets } from "@/components/market/my-bets";
+import { MarketIntelligence } from "@/components/market/market-intelligence";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePredictionContractRead, usePredictionContract } from "@/hooks/use-prediction-contract";
+import { useChimeraProtocol } from "@/hooks/useChimeraProtocol";
 import { useEnvioMarketBets } from "@/hooks/useEnvioData";
 import { OwnerOnly } from "@/components/auth/owner-only";
 import { useAccount } from "wagmi";
@@ -31,6 +32,7 @@ import {
   DollarSign,
   Zap,
   Activity,
+  Brain,
 } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
@@ -41,11 +43,10 @@ export default function MarketDetailPage() {
   const marketId = params.id as string;
   const { address } = useAccount();
 
-  // Use contract hooks for real data
-  const { getMarket, getUserPosition } = usePredictionContractRead();
-  const { claimWinnings, resolveMarket } = usePredictionContract();
-  const { market, isLoading: marketLoading, refetch: refetchMarket } = getMarket(marketId);
-  const { position: userPosition, isLoading: positionLoading, refetch: refetchPosition } = getUserPosition(address || "", marketId);
+  // Use ChimeraProtocol hooks for real data
+  const { useMarket, useUserPosition, claimWinnings } = useChimeraProtocol();
+  const { data: market, isLoading: marketLoading, refetch: refetchMarket } = useMarket(parseInt(marketId));
+  const { data: userPosition, isLoading: positionLoading, refetch: refetchPosition } = useUserPosition(address || "", marketId);
 
   const loading = marketLoading || positionLoading;
   const error = null;
@@ -471,7 +472,7 @@ export default function MarketDetailPage() {
             {/* Market Details Tabs */}
             <div className="space-y-4">
               <Tabs defaultValue="bets" className="w-full">
-                <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-[#1A1F2C] to-[#151923] border border-gray-800/50 rounded-xl p-1 h-12">
+                <TabsList className="grid w-full grid-cols-4 bg-gradient-to-r from-[#1A1F2C] to-[#151923] border border-gray-800/50 rounded-xl p-1 h-12">
                   <TabsTrigger
                     value="bets"
                     className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#eab308] data-[state=active]:to-[#ca8a04] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white transition-all duration-200 rounded-lg h-10 font-medium"
@@ -485,6 +486,13 @@ export default function MarketDetailPage() {
                   >
                     <Zap className="h-3 w-3 mr-1" />
                     My Bets
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="ai-intelligence"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#eab308] data-[state=active]:to-[#ca8a04] data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=inactive]:text-gray-400 data-[state=inactive]:hover:text-white transition-all duration-200 rounded-lg h-10 font-medium"
+                  >
+                    <Brain className="h-3 w-3 mr-1" />
+                    AI Analysis
                   </TabsTrigger>
                   <TabsTrigger
                     value="comments"
@@ -512,6 +520,31 @@ export default function MarketDetailPage() {
                     userAddress={address || ""}
                     showAllBets={false}
                   />
+                </TabsContent>
+
+                {/* AI Intelligence Tab Content */}
+                <TabsContent value="ai-intelligence" className="mt-4">
+                  {market && (
+                    <MarketIntelligence
+                      marketId={marketId}
+                      marketData={{
+                        title: market.title,
+                        optionA: market.optionA,
+                        optionB: market.optionB,
+                        category: market.category,
+                        endTime: parseInt(market.endTime),
+                        marketType: market.marketType,
+                        pythPriceId: market.pythPriceId,
+                        targetPrice: market.targetPrice ? parseFloat(market.targetPrice) : undefined,
+                        priceAbove: market.priceAbove
+                      }}
+                      userProfile={{
+                        riskTolerance: 'medium',
+                        bettingHistory: [],
+                        availableBalance: 1000 // This would come from PYUSD balance
+                      }}
+                    />
+                  )}
                 </TabsContent>
 
                 {/* Comments Tab Content */}

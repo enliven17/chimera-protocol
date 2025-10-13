@@ -29,7 +29,8 @@
     "lit:execute": "node scripts/lit-execute-sample.js",
     "test:ai": "node scripts/test-ai-integration.js",
     "start:ai-services": "node scripts/start-ai-services.js",
-    "create:btc-market": "node scripts/create-btc-150k-market.js"
+    "create:btc-market": "node scripts/create-btc-150k-market.js",
+    "test:frontend": "node scripts/test-frontend.js"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.49.2",

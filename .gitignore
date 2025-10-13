@@ -17,6 +17,7 @@ agents/*/.env
 agents/*/logs/
 agents/*/temp/
 docs
+envio-docs
 # testing
 /coverage
 
