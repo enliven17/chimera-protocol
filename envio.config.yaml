@@ -2,7 +2,7 @@ name: chimera-protocol
 description: ChimeraProtocol prediction market indexer for Hedera EVM
 ecosystem: evm
 schema: schema.graphql
-event_decoder: hypersync-client
+event_decoder: viem
 raw_events: true
 
 contracts:
@@ -17,19 +17,8 @@ contracts:
 
 networks:
   - id: 296
-    hypersync_config:
-      url: https://296.hypersync.xyz
-    rpc:
-      url: https://testnet.hashio.io/api
-      for: fallback
-      initial_block_interval: 10
-      interval_ceiling: 100
-      backoff_multiplicative: 0.5
-      acceleration_additive: 10
-      backoff_millis: 1000
-      query_timeout_millis: 60000
+    rpc: https://testnet.hashio.io/api
     confirmed_block_threshold: 12
-    start_block: 0
     contracts:
       - name: ChimeraProtocol
         address:
