@@ -17,7 +17,6 @@ networks:
   - id: 296
     rpc_config:
       url: https://testnet.hashio.io/api
-      rate_limit_rps: 10
     start_block: 26129088
     contracts:
       - name: ChimeraProtocol
