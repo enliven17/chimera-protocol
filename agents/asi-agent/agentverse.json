@@ -1,0 +1,17 @@
+{
+  "name": "Chimera ASI Market Analyzer",
+  "description": "Autonomous agent using Envio data and MeTTa reasoning to generate contrarian betting signals; executes via Lit Protocol.",
+  "tags": ["chimera", "prediction-markets", "metta", "uagents", "hedera", "envio"],
+  "endpoints": [
+    "http://localhost:8001/submit"
+  ],
+  "protocols": ["MarketAnalysis", "Chat"],
+  "almanac": {
+    "enabled": true
+  },
+  "contact": {
+    "website": "https://superintelligence.io",
+    "twitter": "asi_alliance"
+  }
+}
+

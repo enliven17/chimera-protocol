@@ -84,6 +84,60 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
+## 🧪 Headless Run (No Demo UI)
+
+Run Lit Vincent Skill and ASI Agent locally without any UI.
+
+```powershell
+# 1) Start Vincent Skill
+npm run start:vincent-skill
+
+# 2) Start ASI Agent (Windows PowerShell)
+$env:ENVIO_INDEXER_URL = "http://localhost:8080/v1/graphql"  # set your Envio URL
+$env:LIT_PROTOCOL_ENDPOINT = "http://localhost:3001"         # Vincent Skill URL
+npm run start:asi-headless
+```
+
+Notes:
+- Hyperon MeTTa is optional; if not installed, the agent falls back to heuristic logic.
+- Agentverse/ASI:One registration is not required for headless mode.
+
+### Vincent Ability Headless Test
+Trigger the Vincent Skill `execute_action` endpoint without UI.
+
+```powershell
+$env:LIT_PROTOCOL_ENDPOINT = "http://localhost:3001"
+npm run lit:execute -- place_bet 1 0 25
+```
+
+## 📡 Envio Integration
+
+### HyperIndex (Hosted)
+- Ensure your indexer is deployed on Envio Hosted:
+  1. Review `envio.config.yaml` (network 296, contract, events, field selection)
+  2. Push project to Envio Hosted (via dashboard or CLI per docs)
+  3. Obtain your Hosted GraphQL endpoint (e.g., `https://hosted.envio.dev/api/<project>`) 
+  4. Set `ENVIO_INDEXER_URL` to this endpoint in both frontend env and ASI Agent runtime
+  5. Run `npm run envio:codegen` locally if schema changes
+
+Environment variables (Windows PowerShell):
+```powershell
+$env:ENVIO_INDEXER_URL = "https://hosted.envio.dev/api/<project>"
+```
+
+Used by:
+- ASI Agent: `agents/asi-agent/market_analyzer.py`
+- Frontend: `src/lib/envio-client.ts`
+
+### HyperSync (Sample)
+Run a minimal HyperSync query to fetch recent transactions:
+
+```powershell
+$env:HYPERSYNC_URL = "<your hypersync http endpoint>"
+$env:CHIMERA_ADDRESS = "<chimera contract address>"
+npm run hypersync:sample
+```
+
 3. **Deploy contracts:**
 ```bash
 npm run compile

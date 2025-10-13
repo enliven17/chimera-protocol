@@ -5,45 +5,50 @@ Uses MeTTa reasoning and Envio data to make intelligent betting decisions
 
 import asyncio
 import json
+import os
 import requests
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 # ASI Alliance imports (as specified in eth.md)
-from uagents import Agent, Context, Protocol
+from uagents import Agent, Context, Protocol, Model
 from uagents.setup import fund_agent_if_low
 from uagents.network import wait_for_tx_to_complete
 
-# MeTTa reasoning engine (placeholder - actual implementation would use SingularityNET)
+# MeTTa reasoning engine (Hyperon runtime with graceful fallback)
 class MeTTaReasoner:
     """MeTTa-based reasoning engine for market analysis"""
-    
+
     def __init__(self):
-        self.knowledge_base = {
-            "market_patterns": [],
-            "price_trends": [],
-            "sentiment_data": []
-        }
-    
-    def analyze_market_data(self, market_data: Dict) -> Dict:
-        """Analyze market data using MeTTa reasoning (as specified in eth.md)"""
-        
-        # MeTTa-based strategic reasoning for contrarian betting strategy
-        analysis = {
-            "confidence": 0.0,
-            "recommendation": "HOLD",  # BUY_A, BUY_B, HOLD
-            "reasoning": "",
-            "risk_level": "MEDIUM",
-            "metta_analysis": "Contrarian strategy based on market imbalance"
-        }
-        
-        # Market volume analysis
+        self.metta = None
+        try:
+            # Lazy import to avoid hard crash if hyperon is not available
+            from hyperon import MeTTa  # type: ignore
+            self.metta = MeTTa()
+            # Seed a minimal knowledge base for contrarian reasoning
+            self.metta.run('''
+                (:- (contrarian BUY_B RATIO)
+                    (> RATIO 0.7))
+                (:- (contrarian BUY_A RATIO)
+                    (> (- 1 RATIO) 0.7))
+            ''')
+        except Exception:
+            self.metta = None
+
+    def _fallback_analysis(self, market_data: Dict) -> Dict:
         total_volume = market_data.get("totalPool", 0)
         option_a_ratio = market_data.get("optionARatio", 0.5)
         option_b_ratio = 1 - option_a_ratio
-        
-        # Simple contrarian strategy
+
+        analysis = {
+            "confidence": 0.0,
+            "recommendation": "HOLD",
+            "reasoning": "",
+            "risk_level": "MEDIUM",
+            "metta_analysis": "Fallback heuristic contrarian analysis"
+        }
+
         if option_a_ratio > 0.7:
             analysis["recommendation"] = "BUY_B"
             analysis["confidence"] = min(0.8, (option_a_ratio - 0.5) * 2)
@@ -55,14 +60,44 @@ class MeTTaReasoner:
         else:
             analysis["recommendation"] = "HOLD"
             analysis["reasoning"] = "Market appears balanced, waiting for better opportunity"
-        
-        # Risk assessment
-        if total_volume < 1000:  # Low volume = high risk
+
+        if total_volume < 1000:
             analysis["risk_level"] = "HIGH"
-        elif total_volume > 10000:  # High volume = lower risk
+        elif total_volume > 10000:
             analysis["risk_level"] = "LOW"
-        
+
         return analysis
+
+    def analyze_market_data(self, market_data: Dict) -> Dict:
+        """Analyze market data using MeTTa rules; fallback to heuristic if needed."""
+
+        option_a_ratio = float(market_data.get("optionARatio", 0.5))
+
+        if not self.metta:
+            return self._fallback_analysis(market_data)
+
+        try:
+            # Evaluate MeTTa predicates for contrarian strategy
+            result_buy_b = self.metta.run(f"(contrarian BUY_B {option_a_ratio})")
+            result_buy_a = self.metta.run(f"(contrarian BUY_A {option_a_ratio})")
+
+            recommendation = "HOLD"
+            confidence = 0.5
+            if result_buy_b:
+                recommendation = "BUY_B"
+                confidence = min(0.9, max(0.6, (option_a_ratio - 0.5) * 2))
+            elif result_buy_a:
+                recommendation = "BUY_A"
+                inverted = 1 - option_a_ratio
+                confidence = min(0.9, max(0.6, (inverted - 0.5) * 2))
+
+            analysis = self._fallback_analysis(market_data)
+            analysis["recommendation"] = recommendation
+            analysis["confidence"] = float(confidence)
+            analysis["metta_analysis"] = "Hyperon MeTTa rules applied for contrarian detection"
+            return analysis
+        except Exception:
+            return self._fallback_analysis(market_data)
 
 @dataclass
 class MarketData:
@@ -188,6 +223,12 @@ class ChimeraAgent:
         self.min_confidence = 0.6  # Minimum confidence to place bet
         self.analysis_interval = 300  # Analyze markets every 5 minutes
         
+        # Ensure the agent is funded for almanac/identity operations
+        try:
+            fund_agent_if_low(self.agent.wallet.address())
+        except Exception:
+            pass
+
         self.setup_protocols()
     
     def setup_protocols(self):
@@ -212,6 +253,26 @@ class ChimeraAgent:
                 ctx.logger.error(f"❌ Error in market analysis: {e}")
         
         self.agent.include(market_analysis_protocol)
+
+        # Minimal Chat protocol for ASI:One compatibility
+        chat_protocol = Protocol("Chat")
+
+        class ChatMessage(Model):
+            text: str
+
+        @chat_protocol.on_message(model=ChatMessage, replies={ChatMessage})
+        async def handle_chat(ctx: Context, sender: str, msg: ChatMessage):
+            # Provide a brief status and last analysis hint
+            reply = ChatMessage(
+                text=(
+                    "Chimera ASI Agent is running. "
+                    f"Analysis interval: {self.analysis_interval}s. "
+                    "Send 'status' to get a quick health check."
+                )
+            )
+            await ctx.send(sender, reply)
+
+        self.agent.include(chat_protocol)
     
     async def analyze_single_market(self, ctx: Context, market: MarketData):
         """Analyze a single market and potentially place bet"""

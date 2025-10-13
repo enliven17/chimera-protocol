@@ -19,10 +19,14 @@
     "deploy:autoscout": "node scripts/deploy-autoscout.js",
     "setup:blockscout-mcp": "node scripts/setup-blockscout-mcp.js",
     "test:vincent": "cd agents/lit-protocol && npm test",
+    "start:vincent-skill": "cd agents/lit-protocol && node chimera-vincent-skill.js",
     "start:asi-agent": "cd agents/asi-agent && python market_analyzer.py",
+    "start:asi-headless": "cd agents/asi-agent && python market_analyzer.py",
     "envio:init": "envio init",
     "envio:dev": "envio dev",
-    "envio:codegen": "envio codegen"
+    "envio:codegen": "envio codegen",
+    "hypersync:sample": "node scripts/hypersync-sample.js",
+    "lit:execute": "node scripts/lit-execute-sample.js"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.49.2",
