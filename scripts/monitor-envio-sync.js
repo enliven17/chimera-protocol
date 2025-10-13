@@ -2,7 +2,10 @@
 
 import { GraphQLClient } from 'graphql-request';
 
-const client = new GraphQLClient('https://indexer.dev.hyperindex.xyz/be31b19/v1/graphql');
+// Envio Cloud GraphQL endpoint
+const ENVIO_ENDPOINT = process.env.ENVIO_GRAPHQL_ENDPOINT || 'https://indexer.dev.hyperindex.xyz/7aec3a0/v1/graphql';
+
+const client = new GraphQLClient(ENVIO_ENDPOINT);
 
 async function monitorEnvioSync() {
   console.log('🔄 Monitoring Envio sync status...\n');
@@ -27,11 +30,13 @@ async function monitorEnvioSync() {
       // Check for market data
       const marketQuery = `
         query {
-          MarketCreatedEvent(limit: 1) {
+          MarketCreatedEvent(limit: 5, order_by: {blockTimestamp: desc}) {
             id
             marketId
             title
+            creator
             blockTimestamp
+            transactionHash
           }
         }
       `;
