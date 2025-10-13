@@ -25,11 +25,14 @@ networks:
       acceleration_additive: 10
       backoff_millis: 1000
       query_timeout_millis: 60000
-    start_block: 26156847
+    confirmed_block_threshold: 12
+    start_block: 0
     contracts:
       - name: ChimeraProtocol
         address:
           - "0x7a9D78D1E5fe688F80D4C2c06Ca4C0407A967644"
+          - "0x7Bee0AB565e6aB33009647174Eb8cd55B56EcD7c"
+        start_block: 26156847
 
 field_selection:
   transaction_fields:
