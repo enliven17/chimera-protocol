@@ -14,9 +14,9 @@ ChimeraProtocol.MarketCreated.handler(async ({ event, context }) => {
     marketId: event.params.marketId,
     title: event.params.title,
     creator: event.params.creator,
-    marketType: event.params.marketType,
-    blockNumber: event.block.number,
-    blockTimestamp: event.block.timestamp,
+    marketType: Number(event.params.marketType),
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
     transactionHash: event.transaction.hash,
   };
 
@@ -31,14 +31,17 @@ ChimeraProtocol.MarketCreated.handler(async ({ event, context }) => {
       marketId: event.params.marketId,
       title: event.params.title,
       creator: event.params.creator,
-      marketType: event.params.marketType,
+      marketType: Number(event.params.marketType),
       status: 0, // Active
       resolved: false,
+      outcome: undefined,
+      finalPrice: undefined,
+      resolvedAt: undefined,
       totalPool: BigInt(0),
       totalOptionAShares: BigInt(0),
       totalOptionBShares: BigInt(0),
-      createdAt: event.block.timestamp,
-      updatedAt: event.block.timestamp,
+      createdAt: BigInt(event.block.timestamp),
+      updatedAt: BigInt(event.block.timestamp),
     });
   }
 });
@@ -47,14 +50,15 @@ ChimeraProtocol.MarketCreated.handler(async ({ event, context }) => {
 ChimeraProtocol.BetPlaced.handler(async ({ event, context }) => {
   const entity: BetPlacedEvent = {
     id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
+    market_id: event.params.marketId.toString(),
     marketId: event.params.marketId,
     user: event.params.user,
     agent: event.params.agent,
-    option: event.params.option,
+    option: Number(event.params.option),
     amount: event.params.amount,
     shares: event.params.shares,
-    blockNumber: event.block.number,
-    blockTimestamp: event.block.timestamp,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
     transactionHash: event.transaction.hash,
   };
 
@@ -67,13 +71,13 @@ ChimeraProtocol.BetPlaced.handler(async ({ event, context }) => {
     const updatedMarket = {
       ...market,
       totalPool: market.totalPool + event.params.amount,
-      totalOptionAShares: event.params.option === 0 
+      totalOptionAShares: Number(event.params.option) === 0 
         ? market.totalOptionAShares + event.params.shares 
         : market.totalOptionAShares,
-      totalOptionBShares: event.params.option === 1 
+      totalOptionBShares: Number(event.params.option) === 1 
         ? market.totalOptionBShares + event.params.shares 
         : market.totalOptionBShares,
-      updatedAt: event.block.timestamp,
+      updatedAt: BigInt(event.block.timestamp),
     };
 
     context.Market.set(updatedMarket);
@@ -87,11 +91,14 @@ ChimeraProtocol.BetPlaced.handler(async ({ event, context }) => {
       marketType: 0,
       status: 0,
       resolved: false,
+      outcome: undefined,
+      finalPrice: undefined,
+      resolvedAt: undefined,
       totalPool: event.params.amount,
-      totalOptionAShares: event.params.option === 0 ? event.params.shares : BigInt(0),
-      totalOptionBShares: event.params.option === 1 ? event.params.shares : BigInt(0),
-      createdAt: event.block.timestamp,
-      updatedAt: event.block.timestamp,
+      totalOptionAShares: Number(event.params.option) === 0 ? event.params.shares : BigInt(0),
+      totalOptionBShares: Number(event.params.option) === 1 ? event.params.shares : BigInt(0),
+      createdAt: BigInt(event.block.timestamp),
+      updatedAt: BigInt(event.block.timestamp),
     });
   }
 
@@ -102,28 +109,28 @@ ChimeraProtocol.BetPlaced.handler(async ({ event, context }) => {
   if (position) {
     const updatedPosition = {
       ...position,
-      optionAShares: event.params.option === 0 
+      optionAShares: Number(event.params.option) === 0 
         ? position.optionAShares + event.params.shares 
         : position.optionAShares,
-      optionBShares: event.params.option === 1 
+      optionBShares: Number(event.params.option) === 1 
         ? position.optionBShares + event.params.shares 
         : position.optionBShares,
       totalInvested: position.totalInvested + event.params.amount,
-      updatedAt: event.block.timestamp,
+      updatedAt: BigInt(event.block.timestamp),
     };
 
     context.UserPosition.set(updatedPosition);
   } else {
     context.UserPosition.set({
       id: positionId,
+      market_id: event.params.marketId.toString(),
       marketId: event.params.marketId,
-      market: event.params.marketId.toString(),
       user: event.params.user,
-      optionAShares: event.params.option === 0 ? event.params.shares : BigInt(0),
-      optionBShares: event.params.option === 1 ? event.params.shares : BigInt(0),
+      optionAShares: Number(event.params.option) === 0 ? event.params.shares : BigInt(0),
+      optionBShares: Number(event.params.option) === 1 ? event.params.shares : BigInt(0),
       totalInvested: event.params.amount,
-      createdAt: event.block.timestamp,
-      updatedAt: event.block.timestamp,
+      createdAt: BigInt(event.block.timestamp),
+      updatedAt: BigInt(event.block.timestamp),
     });
   }
 });
@@ -133,11 +140,11 @@ ChimeraProtocol.MarketResolved.handler(async ({ event, context }) => {
   const entity: MarketResolvedEvent = {
     id: `${event.chainId}_${event.block.number}_${event.logIndex}`,
     marketId: event.params.marketId,
-    outcome: event.params.outcome,
+    outcome: Number(event.params.outcome),
     resolver: event.params.resolver,
     finalPrice: event.params.finalPrice,
-    blockNumber: event.block.number,
-    blockTimestamp: event.block.timestamp,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
     transactionHash: event.transaction.hash,
   };
 
@@ -151,10 +158,10 @@ ChimeraProtocol.MarketResolved.handler(async ({ event, context }) => {
       ...market,
       status: 2, // Resolved
       resolved: true,
-      outcome: event.params.outcome,
+      outcome: Number(event.params.outcome),
       finalPrice: event.params.finalPrice,
-      resolvedAt: event.block.timestamp,
-      updatedAt: event.block.timestamp,
+      resolvedAt: BigInt(event.block.timestamp),
+      updatedAt: BigInt(event.block.timestamp),
     };
 
     context.Market.set(updatedMarket);
@@ -169,8 +176,8 @@ ChimeraProtocol.AgentDelegationUpdated.handler(async ({ event, context }) => {
     agent: event.params.agent,
     approved: event.params.approved,
     maxBetAmount: event.params.maxBetAmount,
-    blockNumber: event.block.number,
-    blockTimestamp: event.block.timestamp,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
     transactionHash: event.transaction.hash,
   };
 
@@ -186,12 +193,12 @@ ChimeraProtocol.AgentDelegationUpdated.handler(async ({ event, context }) => {
       agent: event.params.agent,
       approved: true,
       maxBetAmount: event.params.maxBetAmount,
-      createdAt: event.block.timestamp,
-      updatedAt: event.block.timestamp,
+      createdAt: BigInt(event.block.timestamp),
+      updatedAt: BigInt(event.block.timestamp),
     });
   } else {
     // Remove delegation if revoked
-    context.AgentDelegation.delete(delegationId);
+    context.AgentDelegation.deleteUnsafe(delegationId);
   }
 });
 
@@ -202,8 +209,8 @@ ChimeraProtocol.PythPriceUpdated.handler(async ({ event, context }) => {
     priceId: event.params.priceId,
     price: event.params.price,
     timestamp: event.params.timestamp,
-    blockNumber: event.block.number,
-    blockTimestamp: event.block.timestamp,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
     transactionHash: event.transaction.hash,
   };
 
@@ -215,7 +222,7 @@ ChimeraProtocol.PythPriceUpdated.handler(async ({ event, context }) => {
     priceId: event.params.priceId,
     price: event.params.price,
     timestamp: event.params.timestamp,
-    blockNumber: event.block.number,
-    blockTimestamp: event.block.timestamp,
+    blockNumber: BigInt(event.block.number),
+    blockTimestamp: BigInt(event.block.timestamp),
   });
 });
