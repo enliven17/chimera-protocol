@@ -58,10 +58,7 @@ ChimeraProtocol.BetPlaced.handler(async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   };
 
-  context.BetPlacedEvent.set({
-    ...entity,
-    market: event.params.marketId.toString(),
-  });
+  context.BetPlacedEvent.set(entity);
 
   // Update Market entity
   const market = await context.Market.get(event.params.marketId.toString());
