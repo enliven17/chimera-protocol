@@ -1,3 +1,4 @@
+version: 2
 name: chimera-protocol
 description: ChimeraProtocol prediction market indexer for Hedera EVM
 ecosystem: evm
