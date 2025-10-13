@@ -16,8 +16,9 @@ contracts:
 
 networks:
   - id: 296
-    rpc_config:
+    rpc:
       url: https://testnet.hashio.io/api
+      for: sync
       initial_block_interval: 10
       interval_ceiling: 100
       backoff_multiplicative: 0.5
