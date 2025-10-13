@@ -58,7 +58,10 @@ ChimeraProtocol.BetPlaced.handler(async ({ event, context }) => {
     transactionHash: event.transaction.hash,
   };
 
-  context.BetPlacedEvent.set(entity);
+  context.BetPlacedEvent.set({
+    ...entity,
+    market: event.params.marketId.toString(),
+  });
 
   // Update Market entity
   const market = await context.Market.get(event.params.marketId.toString());
@@ -101,6 +104,7 @@ ChimeraProtocol.BetPlaced.handler(async ({ event, context }) => {
     context.UserPosition.set({
       id: positionId,
       marketId: event.params.marketId,
+      market: event.params.marketId.toString(),
       user: event.params.user,
       optionAShares: event.params.option === 0 ? event.params.shares : BigInt(0),
       optionBShares: event.params.option === 1 ? event.params.shares : BigInt(0),

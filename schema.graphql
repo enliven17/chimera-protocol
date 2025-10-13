@@ -16,13 +16,14 @@ type Market @entity {
   resolvedAt: BigInt
   
   # Relations
-  bets: [BetPlacedEvent!]! @derivedFrom(field: "marketId")
-  positions: [UserPosition!]! @derivedFrom(field: "marketId")
+  bets: [BetPlacedEvent!]! @derivedFrom(field: "market")
+  positions: [UserPosition!]! @derivedFrom(field: "market")
 }
 
 type UserPosition @entity {
   id: ID!
   marketId: BigInt!
+  market: Market!
   user: Bytes!
   optionAShares: BigInt!
   optionBShares: BigInt!
@@ -65,6 +66,7 @@ type MarketCreatedEvent @entity {
 type BetPlacedEvent @entity {
   id: ID!
   marketId: BigInt!
+  market: Market!
   user: Bytes!
   agent: Bytes!
   option: Int!
