@@ -5,7 +5,7 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
-const client = new GraphQLClient('https://indexer.dev.hyperindex.xyz/fb42d50/v1/graphql');
+const client = new GraphQLClient('https://indexer.dev.hyperindex.xyz/2d5b518/v1/graphql');
 
 async function testEnvioQueries() {
   console.log('🔍 Testing Envio GraphQL queries...\n');

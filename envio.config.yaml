@@ -8,23 +8,23 @@ contracts:
   - name: ChimeraProtocol
     handler: src/EventHandlers.ts
     events:
-      - event: "event MarketCreated(uint256 indexed marketId, string title, address indexed creator, uint8 marketType)"
-      - event: "event BetPlaced(uint256 indexed marketId, address indexed user, address indexed agent, uint8 option, uint256 amount, uint256 shares)"
-      - event: "event MarketResolved(uint256 indexed marketId, uint8 outcome, address indexed resolver, int64 finalPrice)"
-      - event: "event AgentDelegationUpdated(address indexed user, address indexed agent, bool approved, uint256 maxBetAmount)"
-      - event: "event PythPriceUpdated(bytes32 indexed priceId, int64 price, uint64 timestamp)"
+      - event: "MarketCreated(uint256 indexed marketId, string title, address indexed creator, uint8 marketType)"
+      - event: "BetPlaced(uint256 indexed marketId, address indexed user, address indexed agent, uint8 option, uint256 amount, uint256 shares)"
+      - event: "MarketResolved(uint256 indexed marketId, uint8 outcome, address indexed resolver, int64 finalPrice)"
+      - event: "AgentDelegationUpdated(address indexed user, address indexed agent, bool approved, uint256 maxBetAmount)"
+      - event: "PythPriceUpdated(bytes32 indexed priceId, int64 price, uint64 timestamp)"
 
 networks:
   - id: 296
     rpc_config:
       url: https://testnet.hashio.io/api
-      initial_block_interval: 50
-      interval_ceiling: 500
-      backoff_multiplicative: 0.8
-      acceleration_additive: 50
-      backoff_millis: 2000
-      query_timeout_millis: 30000
-    start_block: 26156800
+      initial_block_interval: 10
+      interval_ceiling: 100
+      backoff_multiplicative: 0.5
+      acceleration_additive: 10
+      backoff_millis: 1000
+      query_timeout_millis: 60000
+    start_block: 26156847
     contracts:
       - name: ChimeraProtocol
         address:
