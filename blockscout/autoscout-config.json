@@ -1,0 +1,71 @@
+{
+  "network": {
+    "name": "ChimeraProtocol Hedera Testnet",
+    "shortName": "chimera-hedera",
+    "chainId": 296,
+    "rpcUrl": "https://testnet.hashio.io/api",
+    "currency": {
+      "name": "HBAR",
+      "symbol": "HBAR",
+      "decimals": 18
+    },
+    "explorerUrl": "https://hashscan.io/testnet"
+  },
+  "contracts": {
+    "ChimeraProtocol": {
+      "address": "0x7Bee0AB565e6aB33009647174Eb8cd55B56EcD7c",
+      "name": "ChimeraProtocol",
+      "description": "AI-powered prediction market with agent delegation",
+      "verified": true,
+      "tags": [
+        "prediction-market",
+        "ai",
+        "defi"
+      ]
+    },
+    "wPYUSD": {
+      "address": "0x9D5F12DBe903A0741F675e4Aa4454b2F7A010aB4",
+      "name": "Wrapped PayPal USD",
+      "description": "PYUSD token for Hedera ecosystem",
+      "verified": true,
+      "tags": [
+        "stablecoin",
+        "paypal",
+        "token"
+      ]
+    },
+    "PythOracle": {
+      "address": "0xa2aa501b19aff244d90cc15a4cf739d2725b5729",
+      "name": "Pyth Price Oracle",
+      "description": "Decentralized price feeds for market settlement",
+      "verified": true,
+      "tags": [
+        "oracle",
+        "price-feeds",
+        "pyth"
+      ]
+    }
+  },
+  "branding": {
+    "title": "ChimeraProtocol Explorer",
+    "description": "Explore ChimeraProtocol prediction markets on Hedera",
+    "logo": "https://chimera-protocol.com/logo.png",
+    "favicon": "https://chimera-protocol.com/favicon.ico",
+    "primaryColor": "#6366f1",
+    "secondaryColor": "#8b5cf6"
+  },
+  "features": {
+    "transactions": true,
+    "tokens": true,
+    "contracts": true,
+    "analytics": true,
+    "api": true,
+    "websockets": true,
+    "graphql": true
+  },
+  "api": {
+    "baseUrl": "https://chimera-explorer.blockscout.com/api/v2",
+    "graphqlUrl": "https://chimera-explorer.blockscout.com/api/v1/graphql",
+    "websocketUrl": "wss://chimera-explorer.blockscout.com/socket/websocket"
+  }
+}

@@ -2,7 +2,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { blockscoutClient } from '@/lib/blockscout-client';
+import { ChimeraBlockscoutClient } from '@/lib/blockscout-client';
+
+// Initialize Blockscout client for Hedera
+const blockscoutClient = new ChimeraBlockscoutClient('https://eth.blockscout.com');
 
 interface Transaction {
   hash: string;
@@ -17,12 +20,16 @@ interface Transaction {
 interface ExplorerProps {
   address?: string;
   showStats?: boolean;
+  marketId?: number;
+  realTime?: boolean;
 }
 
-export function BlockscoutExplorer({ address, showStats = true }: ExplorerProps) {
+export function BlockscoutExplorer({ address, showStats = true, marketId, realTime = false }: ExplorerProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<any>(null);
+  const [marketAnalytics, setMarketAnalytics] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [wsConnection, setWsConnection] = useState<WebSocket | null>(null);
 
   useEffect(() => {
     async function fetchData() {
@@ -38,6 +45,20 @@ export function BlockscoutExplorer({ address, showStats = true }: ExplorerProps)
           const chimeraStats = await blockscoutClient.getChimeraProtocolStats();
           setStats(chimeraStats);
         }
+
+        // Get market-specific analytics if marketId provided
+        if (marketId) {
+          const analytics = await blockscoutClient.getMarketAnalytics(marketId);
+          setMarketAnalytics(analytics);
+        }
+
+        // Setup real-time monitoring if enabled
+        if (realTime) {
+          const ws = await blockscoutClient.subscribeToChimeraTransactions((newTx) => {
+            setTransactions(prev => [newTx, ...prev.slice(0, 49)]);
+          });
+          setWsConnection(ws);
+        }
       } catch (error) {
         console.error('Error fetching explorer data:', error);
       } finally {
@@ -46,7 +67,14 @@ export function BlockscoutExplorer({ address, showStats = true }: ExplorerProps)
     }
 
     fetchData();
-  }, [address, showStats]);
+
+    // Cleanup WebSocket on unmount
+    return () => {
+      if (wsConnection) {
+        wsConnection.close();
+      }
+    };
+  }, [address, showStats, marketId, realTime]);
 
   if (loading) {
     return (
