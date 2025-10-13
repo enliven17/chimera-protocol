@@ -3,45 +3,45 @@
 ## High-Level Architecture
 ```mermaid
 flowchart LR
-  subgraph User Layer
+  subgraph "User Layer"
     U[User]
   end
 
   subgraph Frontend
-    FE[Next.js App]
+    FE["Next.js App"]
   end
 
   subgraph Agents
-    AAI[ASI Agent (uAgents + MeTTa)]
-    LIT[Vincent Skill (Lit Protocol)]
+    AAI["ASI Agent (uAgents + MeTTa)"]
+    LIT["Vincent Skill (Lit Protocol)"]
   end
 
   subgraph Data
-    HI[Envio HyperIndex (Hosted GQL)]
-    HS[Envio HyperSync]
-    BS[Blockscout / Autoscout]
+    HI["Envio HyperIndex (Hosted GQL)"]
+    HS["Envio HyperSync"]
+    BS["Blockscout / Autoscout"]
   end
 
-  subgraph On-Chain (Hedera EVM)
-    CP[ChimeraProtocol.sol]
-    PY[PYUSD (wPYUSD)]
-    PO[Pyth Oracle]
+  subgraph "On-Chain (Hedera EVM)"
+    CP["ChimeraProtocol.sol"]
+    PY["PYUSD (wPYUSD)"]
+    PO["Pyth Oracle"]
   end
 
-  U -->|Wallet (Wagmi/RainbowKit)| FE
-  FE -->|Read Markets & Positions| HI
-  FE -->|Optional: Real-time Data| HS
-  FE -->|Tx / View| CP
-  FE -->|Explorer Links| BS
+  U -->|"Wallet (Wagmi/RainbowKit)"| FE
+  FE -->|"Read Markets & Positions"| HI
+  FE -->|"Optional: Real-time Data"| HS
+  FE -->|"Tx / View"| CP
+  FE -->|"Explorer Links"| BS
 
   AAI -->|Query| HI
-  AAI -->|Optional: Raw Data| HS
-  AAI -->|Signals (HTTP)| LIT
+  AAI -->|"Optional: Raw Data"| HS
+  AAI -->|"Signals (HTTP)"| LIT
 
-  LIT -->|Execute Bets| CP
+  LIT -->|"Execute Bets"| CP
   CP -->|Events| HI
-  CP -->|Price Feeds| PO
-  CP -->|ERC20 Ops| PY
+  CP -->|"Price Feeds"| PO
+  CP -->|"ERC20 Ops"| PY
 ```
 
 ## Headless Execution Sequence
