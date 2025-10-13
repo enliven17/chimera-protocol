@@ -18,13 +18,13 @@ networks:
   - id: 296
     rpc_config:
       url: https://testnet.hashio.io/api
-      initial_block_interval: 200
-      interval_ceiling: 1000
-      backoff_multiplicative: 0.5
-      acceleration_additive: 100
-      backoff_millis: 1000
-      query_timeout_millis: 15000
-    start_block: 26129041
+      initial_block_interval: 50
+      interval_ceiling: 500
+      backoff_multiplicative: 0.8
+      acceleration_additive: 50
+      backoff_millis: 2000
+      query_timeout_millis: 30000
+    start_block: 26128088
     contracts:
       - name: ChimeraProtocol
         address:
