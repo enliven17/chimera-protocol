@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { usePredictionContractRead, usePredictionContract } from "@/hooks/use-prediction-contract";
+import { useEnvioMarketBets } from "@/hooks/useEnvioData";
 import { OwnerOnly } from "@/components/auth/owner-only";
 import { useAccount } from "wagmi";
 import { MarketStatus } from "@/types/market";
@@ -49,9 +50,10 @@ export default function MarketDetailPage() {
   const loading = marketLoading || positionLoading;
   const error = null;
   
-  // Mock data for development
-  const trades: any[] = [];
-  const comments: any[] = [];
+  // Get real market activity data from Envio
+  const { data: marketBets } = useEnvioMarketBets(marketId);
+  const trades = marketBets || [];
+  const comments: any[] = []; // Comments would come from a separate system
 
   const [betDialogOpen, setBetDialogOpen] = useState(false);
   const [selectedSide, setSelectedSide] = useState<"optionA" | "optionB">("optionA");

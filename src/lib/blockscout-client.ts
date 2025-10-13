@@ -40,14 +40,17 @@ export class ChimeraBlockscoutClient {
   // Get contract details
   async getContract(address: string) {
     try {
-      const contract = await this.sdk.contract.getByAddress(address);
+      const response = await axios.get(`${this.baseUrl}/api/v2/addresses/${address}`, {
+        headers: this.apiKey ? { 'Authorization': `Bearer ${this.apiKey}` } : {}
+      });
+      const contract = response.data;
       return {
-        address: contract.address,
+        address: contract.hash,
         name: contract.name,
-        verified: contract.verified,
+        verified: contract.is_verified,
         abi: contract.abi,
-        sourceCode: contract.sourceCode,
-        transactions: contract.transactionCount
+        sourceCode: contract.source_code,
+        transactions: contract.transactions_count
       };
     } catch (error) {
       console.error('Error fetching contract:', error);
@@ -58,14 +61,17 @@ export class ChimeraBlockscoutClient {
   // Get token details
   async getToken(address: string) {
     try {
-      const token = await this.sdk.token.getByAddress(address);
+      const response = await axios.get(`${this.baseUrl}/api/v2/tokens/${address}`, {
+        headers: this.apiKey ? { 'Authorization': `Bearer ${this.apiKey}` } : {}
+      });
+      const token = response.data;
       return {
         address: token.address,
         name: token.name,
         symbol: token.symbol,
         decimals: token.decimals,
-        totalSupply: token.totalSupply,
-        holders: token.holdersCount
+        totalSupply: token.total_supply,
+        holders: token.holders_count
       };
     } catch (error) {
       console.error('Error fetching token:', error);
@@ -76,13 +82,17 @@ export class ChimeraBlockscoutClient {
   // Get address transactions
   async getAddressTransactions(address: string, limit: number = 50) {
     try {
-      const txs = await this.sdk.address.getTransactions(address, { limit });
-      return txs.map(tx => ({
+      const response = await axios.get(`${this.baseUrl}/api/v2/addresses/${address}/transactions`, {
+        params: { limit },
+        headers: this.apiKey ? { 'Authorization': `Bearer ${this.apiKey}` } : {}
+      });
+      const txs = response.data.items || [];
+      return txs.map((tx: any) => ({
         hash: tx.hash,
         status: tx.status,
         method: tx.method,
-        from: tx.from,
-        to: tx.to,
+        from: tx.from?.hash,
+        to: tx.to?.hash,
         value: tx.value,
         timestamp: tx.timestamp
       }));

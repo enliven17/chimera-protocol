@@ -18,6 +18,94 @@ ChimeraAI combines cutting-edge AI agents with decentralized prediction markets 
 
 | Sponsor | Integration | Prize Track |
 |---------|-------------|-------------|
+| **ASI Alliance** | MeTTa reasoning agents for market analysis | AI Agent Integration |
+| **Lit Protocol** | Vincent Skill for secure execution | Programmable Key Pairs |
+| **Envio** | HyperIndex for real-time data indexing | Data Infrastructure |
+| **Pyth Network** | Oracle price feeds for price markets | Oracle Integration |
+| **Blockscout** | On-chain analytics and monitoring | Blockchain Analytics |
+
+## 🚀 New Frontend Integrations
+
+The frontend now includes comprehensive integrations with all system components:
+
+### 📊 System Dashboard
+- Real-time monitoring of all ecosystem components
+- ASI Agent performance metrics
+- Lit Protocol security status
+- Bridge statistics and health monitoring
+- Live price feeds from Pyth Network
+
+### 🧠 Market Intelligence
+- AI-powered market analysis using ASI Alliance agents
+- MeTTa reasoning for contrarian betting strategies
+- Sentiment analysis from multiple data sources
+- Risk assessment and betting recommendations
+- Real-time price condition monitoring
+
+### 🌉 PYUSD Bridge Interface
+- Seamless transfers between Ethereum and Hedera
+- Real-time transfer status tracking
+- Liquidity monitoring and fee calculation
+- Transfer history and analytics
+
+### 🔐 Enhanced Security
+- Lit Protocol Vincent Skill integration
+- Secure transaction validation
+- Audit trail and execution history
+- Emergency stop mechanisms
+
+## 🛠️ Architecture Overview
+
+```mermaid
+graph TB
+    subgraph "Frontend Layer"
+        FE[Next.js App]
+        SD[System Dashboard]
+        MI[Market Intelligence]
+        BR[Bridge Interface]
+    end
+
+    subgraph "AI Layer"
+        ASI[ASI Alliance Agent]
+        LIT[Lit Protocol Vincent]
+    end
+
+    subgraph "Data Layer"
+        ENV[Envio HyperIndex]
+        PYT[Pyth Oracle]
+        BS[Blockscout]
+    end
+
+    subgraph "Blockchain Layer"
+        CP[ChimeraProtocol]
+        PYUSD[wPYUSD Token]
+        BRIDGE[PYUSD Bridge]
+    end
+
+    FE --> SD
+    FE --> MI
+    FE --> BR
+    
+    SD --> ASI
+    SD --> LIT
+    SD --> ENV
+    SD --> BS
+    
+    MI --> ASI
+    MI --> ENV
+    MI --> PYT
+    
+    BR --> BRIDGE
+    BR --> ENV
+    
+    ASI --> LIT
+    LIT --> CP
+    CP --> PYUSD
+    CP --> PYT
+    
+    ENV --> CP
+    BS --> CP
+```
 | **ASI Alliance** | MeTTa reasoning with Envio data analysis | 🚀 Best use of Artificial Superintelligence Alliance |
 | **Lit Protocol** | Hedera Agent Kit + Vincent Skills for secure execution | 🎨 Best Hedera x Lit Protocol Vincent Skill |
 | **Hedera** | EVM contracts + Agent Kit integration | EVM Innovator Track + Best Use of Hedera Agent Kit |

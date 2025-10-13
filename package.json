@@ -26,7 +26,10 @@
     "envio:dev": "envio dev",
     "envio:codegen": "envio codegen",
     "hypersync:sample": "node scripts/hypersync-sample.js",
-    "lit:execute": "node scripts/lit-execute-sample.js"
+    "lit:execute": "node scripts/lit-execute-sample.js",
+    "test:ai": "node scripts/test-ai-integration.js",
+    "start:ai-services": "node scripts/start-ai-services.js",
+    "create:btc-market": "node scripts/create-btc-150k-market.js"
   },
   "dependencies": {
     "@hashgraph/sdk": "^2.49.2",
@@ -63,6 +66,7 @@
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@rainbow-me/rainbowkit": "^2.2.8",
+    "@solana/web3.js": "^1.95.4",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.74.0",
     "@tanstack/react-query": "^5.80.7",
@@ -74,6 +78,7 @@
     "date-fns": "^4.1.0",
     "dotenv": "^17.2.3",
     "embla-carousel-react": "^8.6.0",
+    "graphql": "^16.11.0",
     "graphql-request": "^7.2.0",
     "input-otp": "^1.4.2",
     "js-cookie": "^3.0.5",

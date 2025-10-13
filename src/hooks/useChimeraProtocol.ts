@@ -52,19 +52,35 @@ export function useChimeraProtocol() {
   };
 
   const useAllMarkets = () => {
-    return useReadContract({
+    const result = useReadContract({
       address: CONTRACT_ADDRESS,
       abi: CHIMERA_ABI,
       functionName: "getAllMarkets",
     });
+
+    // Transform contract data to frontend format
+    const transformedData = result.data ? (result.data as any[]).map(transformMarket) : [];
+    
+    return {
+      ...result,
+      data: transformedData
+    };
   };
 
   const useActiveMarkets = () => {
-    return useReadContract({
+    const result = useReadContract({
       address: CONTRACT_ADDRESS,
       abi: CHIMERA_ABI,
       functionName: "getActiveMarkets",
     });
+
+    // Transform contract data to frontend format
+    const transformedData = result.data ? (result.data as any[]).map(transformMarket) : [];
+    
+    return {
+      ...result,
+      data: transformedData
+    };
   };
 
   const useUserPosition = (userAddress: `0x${string}`, marketId: number) => {
@@ -243,4 +259,32 @@ export const formatPYUSD = (amount: bigint) => {
 
 export const parsePYUSD = (amount: string) => {
   return parseUnits(amount, 6);
+};
+
+// Transform contract market data to frontend format
+const transformMarket = (contractMarket: any) => {
+  return {
+    id: contractMarket.id.toString(),
+    title: contractMarket.title,
+    description: contractMarket.description,
+    category: Number(contractMarket.category),
+    optionA: contractMarket.optionA,
+    optionB: contractMarket.optionB,
+    creator: contractMarket.creator,
+    createdAt: contractMarket.createdAt.toString(),
+    endTime: contractMarket.endTime.toString(),
+    minBet: formatUnits(contractMarket.minBet, 6),
+    maxBet: formatUnits(contractMarket.maxBet, 6),
+    status: Number(contractMarket.status),
+    outcome: contractMarket.resolved ? Number(contractMarket.outcome) : null,
+    resolved: contractMarket.resolved,
+    totalOptionAShares: formatUnits(contractMarket.totalOptionAShares, 6),
+    totalOptionBShares: formatUnits(contractMarket.totalOptionBShares, 6),
+    totalPool: formatUnits(contractMarket.totalPool, 6),
+    imageURI: contractMarket.imageUrl,
+    marketType: Number(contractMarket.marketType),
+    pythPriceId: contractMarket.pythPriceId,
+    targetPrice: contractMarket.targetPrice ? formatUnits(contractMarket.targetPrice, 8) : null,
+    priceAbove: contractMarket.priceAbove
+  };
 };

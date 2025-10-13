@@ -6,8 +6,8 @@
 const { LitNodeClient } = require("@lit-protocol/lit-node-client");
 const { LitNetwork } = require("@lit-protocol/constants");
 const { ethers } = require("ethers");
-// Hedera Agent Kit integration (as specified in eth.md)
-const { HederaAgentKit } = require("@hashgraph/hedera-agent-kit");
+// Hedera SDK integration
+const { Client, AccountId, PrivateKey } = require("@hashgraph/sdk");
 
 class ChimeraVincentSkill {
   constructor(config) {
@@ -15,7 +15,7 @@ class ChimeraVincentSkill {
     this.litNodeClient = null;
     this.provider = null;
     this.chimeraContract = null;
-    this.hederaAgentKit = null; // Hedera Agent Kit for secure Hedera EVM interaction
+    this.hederaClient = null; // Hedera client for secure Hedera EVM interaction
     
     this.init();
   }
@@ -32,11 +32,8 @@ class ChimeraVincentSkill {
     await this.litNodeClient.connect();
     console.log("✅ Connected to Lit Protocol network");
     
-    // Initialize Hedera Agent Kit (as specified in eth.md)
-    this.hederaAgentKit = new HederaAgentKit({
-      network: "testnet",
-      rpcUrl: this.config.hederaRpcUrl
-    });
+    // Initialize Hedera client
+    this.hederaClient = Client.forTestnet();
     
     // Initialize Hedera provider
     this.provider = new ethers.JsonRpcProvider(this.config.hederaRpcUrl);

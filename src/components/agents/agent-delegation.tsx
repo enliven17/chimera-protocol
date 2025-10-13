@@ -24,13 +24,13 @@ import { toast } from "sonner";
 import { useChimeraProtocol } from "@/hooks/useChimeraProtocol";
 import { usePYUSD } from "@/hooks/usePYUSD";
 
-// Predefined AI agents
+// AI agents from environment variables
 const AI_AGENTS = [
   {
     id: "asi-alliance",
     name: "ASI Alliance Agent",
     description: "MeTTa reasoning with Envio data analysis for contrarian betting strategies",
-    address: "0x742d35Cc6634C0532925a3b8D4C9db96C4b5Da5e" as `0x${string}`,
+    address: (process.env.NEXT_PUBLIC_ASI_AGENT_ADDRESS || "0x742d35Cc6634C0532925a3b8D4C9db96C4b5Da5e") as `0x${string}`,
     type: "ASI Alliance",
     strategy: "Contrarian Analysis",
     riskLevel: "Medium",
@@ -40,13 +40,13 @@ const AI_AGENTS = [
     id: "lit-protocol",
     name: "Lit Protocol Vincent",
     description: "Secure execution layer with delegation validation and audit trails",
-    address: "0x8ba1f109551bD432803012645Hac136c22C85B" as `0x${string}`,
+    address: (process.env.NEXT_PUBLIC_LIT_PROTOCOL_AGENT_ADDRESS || "0x8ba1f109551bD432803012645Hac136c22C85B") as `0x${string}`,
     type: "Lit Protocol",
     strategy: "Secure Execution",
     riskLevel: "Low",
     color: "purple",
   },
-];
+].filter(agent => agent.address !== "0x742d35Cc6634C0532925a3b8D4C9db96C4b5Da5e" && agent.address !== "0x8ba1f109551bD432803012645Hac136c22C85B"); // Filter out default addresses
 
 export function AgentDelegation() {
   const { address, isConnected } = useAccount();

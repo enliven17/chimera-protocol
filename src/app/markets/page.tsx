@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { usePredictionContractRead } from "@/hooks/use-prediction-contract";
+import { useChimeraProtocol } from "@/hooks/useChimeraProtocol";
 import { Market } from "@/types/market";
 import {
   DollarSign,
@@ -22,8 +22,10 @@ export default function MarketsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("active");
 
-  // Use contract hooks for real data
-  const { activeMarkets, allMarkets, activeMarketsLoading, allMarketsLoading, refetchActiveMarkets, refetchAllMarkets } = usePredictionContractRead();
+  // Use ChimeraProtocol contract hooks for real data
+  const { useAllMarkets, useActiveMarkets } = useChimeraProtocol();
+  const { data: allMarkets, isLoading: allMarketsLoading, refetch: refetchAllMarkets } = useAllMarkets();
+  const { data: activeMarkets, isLoading: activeMarketsLoading, refetch: refetchActiveMarkets } = useActiveMarkets();
 
   const loading = activeMarketsLoading || allMarketsLoading;
   const error = null;
@@ -31,11 +33,11 @@ export default function MarketsPage() {
   // Filter markets based on active tab
   const getMarketsForTab = () => {
     if (activeTab === "active") {
-      return activeMarkets;
+      return activeMarkets || [];
     } else if (activeTab === "resolved") {
-      return allMarkets.filter(market => market.resolved);
+      return (allMarkets || []).filter(market => market.resolved);
     } else {
-      return allMarkets; // "all" tab
+      return allMarkets || []; // "all" tab
     }
   };
 
@@ -170,7 +172,7 @@ export default function MarketsPage() {
                   variant="secondary"
                   className="bg-gray-700/50 text-gray-300 border-0 text-xs px-2 py-0.5"
                 >
-                  {activeMarkets.length}
+                  {activeMarkets?.length || 0}
                 </Badge>
               </div>
             </TabsTrigger>
@@ -186,7 +188,7 @@ export default function MarketsPage() {
                   variant="secondary"
                   className="bg-gray-700/50 text-gray-300 border-0 text-xs px-2 py-0.5"
                 >
-                  {allMarkets.filter(m => m.resolved).length}
+                  {(allMarkets || []).filter(m => m.resolved).length}
                 </Badge>
               </div>
             </TabsTrigger>
@@ -202,7 +204,7 @@ export default function MarketsPage() {
                   variant="secondary"
                   className="bg-gray-700/50 text-gray-300 border-0 text-xs px-2 py-0.5"
                 >
-                  {allMarkets.length}
+                  {allMarkets?.length || 0}
                 </Badge>
               </div>
             </TabsTrigger>

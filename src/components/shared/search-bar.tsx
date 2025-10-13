@@ -1,1 +1,259 @@
-﻿"use client";`n`n// src/components/shared/search-bar.tsx`n`nimport { useState, useEffect, useRef } from "react";`nimport { useRouter } from "next/navigation";`nimport { Input } from "@/components/ui/input";`nimport { Button } from "@/components/ui/button";`nimport { Badge } from "@/components/ui/badge";`nimport { `n  Search, `n  X, `n  Clock,`n  TrendingUp,`n  Filter`n} from "lucide-react";`n`ninterface SearchSuggestion {`n  id: string;`n  title: string;`n  category: string;`n  type: "market" | "user" | "category";`n}`n`n// Mock search suggestions - replace with actual API call`nconst mockSuggestions: SearchSuggestion[] = [`n  { id: "1", title: "Will Bitcoin reach $100k by end of 2025?", category: "Economics", type: "market" },`n  { id: "2", title: "Next US Presidential Election Winner", category: "Politics", type: "market" },`n  { id: "3", title: "Sports", category: "Sports", type: "category" },`n  { id: "4", title: "Will ChatGPT-5 be released in 2025?", category: "Technology", type: "market" },`n];`n`nexport function SearchBar() {`n  const [query, setQuery] = useState("");`n  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);`n  const [isOpen, setIsOpen] = useState(false);`n  const [recentSearches, setRecentSearches] = useState<string[]>([]);`n  const router = useRouter();`n  const inputRef = useRef<HTMLInputElement>(null);`n  const containerRef = useRef<HTMLDivElement>(null);`n`n  // Load recent searches from localStorage on mount`n  useEffect(() => {`n    const saved = localStorage.getItem("recent-searches");`n    if (saved) {`n      setRecentSearches(JSON.parse(saved));`n    }`n  }, []);`n`n  // Handle search suggestions`n  useEffect(() => {`n    if (query.length > 1) {`n      // Simulate API call`n      const filtered = mockSuggestions.filter(suggestion =>`n        suggestion.title.toLowerCase().includes(query.toLowerCase()) ||`n        suggestion.category.toLowerCase().includes(query.toLowerCase())`n      );`n      setSuggestions(filtered);`n      setIsOpen(true);`n    } else {`n      setSuggestions([]);`n      setIsOpen(query.length === 0 && document.activeElement === inputRef.current);`n    }`n  }, [query]);`n`n  // Close dropdown when clicking outside`n  useEffect(() => {`n    function handleClickOutside(event: MouseEvent) {`n      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {`n        setIsOpen(false);`n      }`n    }`n`n    document.addEventListener("mousedown", handleClickOutside);`n    return () => document.removeEventListener("mousedown", handleClickOutside);`n  }, []);`n`n  const handleSearch = (searchQuery: string) => {`n    if (!searchQuery.trim()) return;`n    `n    // Add to recent searches`n    const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5);`n    setRecentSearches(updated);`n    localStorage.setItem("recent-searches", JSON.stringify(updated));`n    `n    // Navigate to search results`n    router.push(`/markets?search=${encodeURIComponent(searchQuery)}`);`n    setQuery("");`n    setIsOpen(false);`n    inputRef.current?.blur();`n  };`n`n  const handleKeyDown = (e: React.KeyboardEvent) => {`n    if (e.key === "Enter") {`n      handleSearch(query);`n    } else if (e.key === "Escape") {`n      setIsOpen(false);`n      inputRef.current?.blur();`n    }`n  };`n`n  const clearRecentSearches = () => {`n    setRecentSearches([]);`n    localStorage.removeItem("recent-searches");`n  };`n`n  return (`n    <div ref={containerRef} className="relative w-full">`n      {/* Search Input */}`n      <div className="relative">`n        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />`n        <Input`n          ref={inputRef}`n          type="text"`n          placeholder="Search markets, users, categories..."`n          value={query}`n          onChange={(e) => setQuery(e.target.value)}`n          onKeyDown={handleKeyDown}`n          onFocus={() => setIsOpen(true)}`n          className="pl-9 pr-10"`n        />`n        {query && (`n          <Button`n            variant="ghost"`n            size="sm"`n            className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 p-0"`n            onClick={() => {`n              setQuery("");`n              inputRef.current?.focus();`n            }}`n          >`n            <X className="h-4 w-4" />`n          </Button>`n        )}`n      </div>`n`n      {/* Search Dropdown */}`n      {isOpen && (`n        <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover p-0 shadow-md">`n          {/* Search Suggestions */}`n          {suggestions.length > 0 && (`n            <div className="border-b p-2">`n              <h4 className="text-xs font-medium text-muted-foreground mb-2">Suggestions</h4>`n              {suggestions.map((suggestion) => (`n                <button`n                  key={suggestion.id}`n                  className="w-full text-left rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between group"`n                  onClick={() => {`n                    if (suggestion.type === "market") {`n                      router.push(`/markets/${suggestion.id}`);`n                    } else if (suggestion.type === "category") {`n                      router.push(`/markets?category=${suggestion.category}`);`n                    }`n                    setIsOpen(false);`n                  }}`n                >`n                  <div className="flex items-center space-x-2">`n                    {suggestion.type === "market" ? (`n                      <TrendingUp className="h-4 w-4 text-muted-foreground" />`n                    ) : (`n                      <Filter className="h-4 w-4 text-muted-foreground" />`n                    )}`n                    <span className="truncate">{suggestion.title}</span>`n                  </div>`n                  <Badge variant="secondary" className="text-xs">`n                    {suggestion.category}`n                  </Badge>`n                </button>`n              ))}`n            </div>`n          )}`n`n          {/* Recent Searches */}`n          {query.length === 0 && recentSearches.length > 0 && (`n            <div className="p-2">`n              <div className="flex items-center justify-between mb-2">`n                <h4 className="text-xs font-medium text-muted-foreground">Recent Searches</h4>`n                <Button`n                  variant="ghost"`n                  size="sm"`n                  className="h-auto p-0 text-xs text-muted-foreground"`n                  onClick={clearRecentSearches}`n                >`n                  Clear`n                </Button>`n              </div>`n              {recentSearches.map((search, index) => (`n                <button`n                  key={index}`n                  className="w-full text-left rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground flex items-center space-x-2"`n                  onClick={() => handleSearch(search)}`n                >`n                  <Clock className="h-4 w-4 text-muted-foreground" />`n                  <span className="truncate">{search}</span>`n                </button>`n              ))}`n            </div>`n          )}`n`n          {/* No Results */}`n          {query.length > 1 && suggestions.length === 0 && (`n            <div className="p-4 text-center text-sm text-muted-foreground">`n              No suggestions found for "{query}"`n              <br />`n              <Button`n                variant="link"`n                className="mt-1 h-auto p-0 text-sm"`n                onClick={() => handleSearch(query)}`n              >`n                Search anyway`n              </Button>`n            </div>`n          )}`n`n          {/* Empty State */}`n          {query.length === 0 && recentSearches.length === 0 && (`n            <div className="p-4 text-center text-sm text-muted-foreground">`n              Start typing to search markets...`n            </div>`n          )}`n        </div>`n      )}`n    </div>`n  );`n}
+﻿"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Search, 
+  X, 
+  Clock,
+  TrendingUp,
+  Filter
+} from "lucide-react";
+import { useEnvioMarkets } from "@/hooks/useEnvioData";
+
+interface SearchSuggestion {
+  id: string;
+  title: string;
+  category: string;
+  type: "market" | "user" | "category";
+}
+
+const MARKET_CATEGORIES = [
+  { value: 0, label: "Sports", emoji: "⚽" },
+  { value: 1, label: "Entertainment", emoji: "🎬" },
+  { value: 2, label: "Technology", emoji: "💻" },
+  { value: 3, label: "Economics", emoji: "💰" },
+  { value: 4, label: "Weather", emoji: "🌤️" },
+  { value: 5, label: "Crypto", emoji: "🪙" },
+  { value: 6, label: "Politics", emoji: "🏳️" },
+  { value: 7, label: "Breaking News", emoji: "📰" },
+  { value: 8, label: "Other", emoji: "❓" },
+];
+
+export function SearchBar() {
+  const [query, setQuery] = useState("");
+  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const router = useRouter();
+  const inputRef = useRef<HTMLInputElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Get real market data from Envio
+  const { data: markets, isLoading } = useEnvioMarkets(100);
+
+  // Load recent searches from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("recent-searches");
+    if (saved) {
+      setRecentSearches(JSON.parse(saved));
+    }
+  }, []);
+
+  // Handle search suggestions with real data
+  useEffect(() => {
+    if (query.length > 1 && markets) {
+      // Filter real markets based on query
+      const marketSuggestions: SearchSuggestion[] = markets
+        .filter(market => 
+          market.title.toLowerCase().includes(query.toLowerCase())
+        )
+        .slice(0, 5)
+        .map(market => ({
+          id: market.marketId,
+          title: market.title,
+          category: MARKET_CATEGORIES.find(cat => cat.value === parseInt(market.marketType?.toString() || '8'))?.label || 'Other',
+          type: "market" as const
+        }));
+
+      // Add category suggestions
+      const categorySuggestions: SearchSuggestion[] = MARKET_CATEGORIES
+        .filter(category => 
+          category.label.toLowerCase().includes(query.toLowerCase())
+        )
+        .slice(0, 3)
+        .map(category => ({
+          id: category.value.toString(),
+          title: category.label,
+          category: category.label,
+          type: "category" as const
+        }));
+
+      setSuggestions([...marketSuggestions, ...categorySuggestions]);
+      setIsOpen(true);
+    } else {
+      setSuggestions([]);
+      setIsOpen(query.length === 0 && document.activeElement === inputRef.current);
+    }
+  }, [query, markets]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleSearch = (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
+    
+    // Add to recent searches
+    const updated = [searchQuery, ...recentSearches.filter(s => s !== searchQuery)].slice(0, 5);
+    setRecentSearches(updated);
+    localStorage.setItem("recent-searches", JSON.stringify(updated));
+    
+    // Navigate to search results
+    router.push(`/markets?search=${encodeURIComponent(searchQuery)}`);
+    setQuery("");
+    setIsOpen(false);
+    inputRef.current?.blur();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      handleSearch(query);
+    } else if (e.key === "Escape") {
+      setIsOpen(false);
+      inputRef.current?.blur();
+    }
+  };
+
+  const clearRecentSearches = () => {
+    setRecentSearches([]);
+    localStorage.removeItem("recent-searches");
+  };
+
+  return (
+    <div ref={containerRef} className="relative w-full">
+      {/* Search Input */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          ref={inputRef}
+          type="text"
+          placeholder="Search markets, categories..."
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          onKeyDown={handleKeyDown}
+          onFocus={() => setIsOpen(true)}
+          className="pl-9 pr-10"
+        />
+        {query && (
+          <Button
+            variant="ghost"
+            size="sm"
+            className="absolute right-2 top-1/2 h-6 w-6 -translate-y-1/2 p-0"
+            onClick={() => {
+              setQuery("");
+              inputRef.current?.focus();
+            }}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+      </div>
+
+      {/* Search Dropdown */}
+      {isOpen && (
+        <div className="absolute top-full z-50 mt-1 w-full rounded-md border bg-popover p-0 shadow-md">
+          {/* Loading State */}
+          {isLoading && query.length > 1 && (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              Searching...
+            </div>
+          )}
+
+          {/* Search Suggestions */}
+          {suggestions.length > 0 && !isLoading && (
+            <div className="border-b p-2">
+              <h4 className="text-xs font-medium text-muted-foreground mb-2">Suggestions</h4>
+              {suggestions.map((suggestion) => (
+                <button
+                  key={suggestion.id}
+                  className="w-full text-left rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground flex items-center justify-between group"
+                  onClick={() => {
+                    if (suggestion.type === "market") {
+                      router.push(`/markets/${suggestion.id}`);
+                    } else if (suggestion.type === "category") {
+                      router.push(`/markets?category=${suggestion.category}`);
+                    }
+                    setIsOpen(false);
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    {suggestion.type === "market" ? (
+                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <Filter className="h-4 w-4 text-muted-foreground" />
+                    )}
+                    <span className="truncate">{suggestion.title}</span>
+                  </div>
+                  <Badge variant="secondary" className="text-xs">
+                    {suggestion.category}
+                  </Badge>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Recent Searches */}
+          {query.length === 0 && recentSearches.length > 0 && (
+            <div className="p-2">
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-medium text-muted-foreground">Recent Searches</h4>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 text-xs text-muted-foreground"
+                  onClick={clearRecentSearches}
+                >
+                  Clear
+                </Button>
+              </div>
+              {recentSearches.map((search, index) => (
+                <button
+                  key={index}
+                  className="w-full text-left rounded-sm px-2 py-1.5 text-sm hover:bg-accent hover:text-accent-foreground flex items-center space-x-2"
+                  onClick={() => handleSearch(search)}
+                >
+                  <Clock className="h-4 w-4 text-muted-foreground" />
+                  <span className="truncate">{search}</span>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* No Results */}
+          {query.length > 1 && suggestions.length === 0 && !isLoading && (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              No suggestions found for "{query}"
+              <br />
+              <Button
+                variant="link"
+                className="mt-1 h-auto p-0 text-sm"
+                onClick={() => handleSearch(query)}
+              >
+                Search anyway
+              </Button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {query.length === 0 && recentSearches.length === 0 && (
+            <div className="p-4 text-center text-sm text-muted-foreground">
+              Start typing to search markets...
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
