@@ -104,7 +104,12 @@ export default function MarketsPage() {
               <p className="text-3xl font-bold text-white">
                 {markets.length}
               </p>
-              <p className="text-xs text-gray-500 mt-1">Currently running</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {envioMarkets && envioMarkets.length > 0 
+                  ? `${envioMarkets.length} indexed by Envio` 
+                  : 'Currently running'
+                }
+              </p>
             </div>
 
             <div className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] rounded-xl p-6 border border-gray-800/50 shadow-xl backdrop-blur-sm">

@@ -4,7 +4,7 @@ import { GraphQLClient } from 'graphql-request';
 export class EnvioClient {
   private client: GraphQLClient;
 
-  constructor(endpoint: string = 'https://indexer.dev.hyperindex.xyz/42aac99/v1/graphql') {
+  constructor(endpoint: string = 'https://indexer.dev.hyperindex.xyz/4bca011/v1/graphql') {
     this.client = new GraphQLClient(endpoint);
   }
 
