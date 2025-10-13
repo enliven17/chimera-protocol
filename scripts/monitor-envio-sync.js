@@ -2,7 +2,7 @@
 
 import { GraphQLClient } from 'graphql-request';
 
-const client = new GraphQLClient('https://indexer.dev.hyperindex.xyz/4bca011/v1/graphql');
+const client = new GraphQLClient('https://indexer.dev.hyperindex.xyz/be31b19/v1/graphql');
 
 async function monitorEnvioSync() {
   console.log('🔄 Monitoring Envio sync status...\n');
