@@ -16,14 +16,14 @@ async function createBTCMarket() {
   // Setup provider and wallet
   const provider = new ethers.JsonRpcProvider(process.env.HEDERA_RPC_URL || 'https://testnet.hashio.io/api');
   const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-  
+
   console.log(`📍 Using wallet: ${wallet.address}`);
   console.log(`🌐 Network: Hedera Testnet (Chain ID: 296)`);
-  
+
   // Contract setup
   const chimeraAddress = process.env.NEXT_PUBLIC_CHIMERA_CONTRACT_ADDRESS;
   const chimeraContract = new ethers.Contract(chimeraAddress, CHIMERA_ABI, wallet);
-  
+
   console.log(`📋 ChimeraProtocol: ${chimeraAddress}\n`);
 
   // Market parameters
@@ -31,12 +31,12 @@ async function createBTCMarket() {
     title: "Will Bitcoin reach $150,000 by December 31, 2025?",
     description: "This market will resolve to 'Yes' if Bitcoin (BTC/USD) reaches or exceeds $150,000 at any point before December 31, 2025, 23:59:59 UTC. Price data will be sourced from Pyth Network oracle. If BTC reaches $150K even briefly, the market resolves to 'Yes'.",
     optionA: "Yes - BTC will hit $150K",
-    optionB: "No - BTC stays below $150K", 
+    optionB: "No - BTC stays below $150K",
     category: 5, // Crypto category
     endTime: Math.floor(new Date('2025-12-31T23:59:59Z').getTime() / 1000), // Dec 31, 2025
     minBet: ethers.parseUnits('1', 6), // 1 PYUSD
     maxBet: ethers.parseUnits('10000', 6), // 10,000 PYUSD
-    imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/46/Bitcoin.svg/1200px-Bitcoin.svg.png", // Bitcoin logo
+    imageUrl: "/bitcoin.png", // Local Bitcoin logo
     marketType: 0, // Price Direction market
     pythPriceId: "0xc5e0e0c92116c0c070a242b254270441a6201af680a33e0381561c59db3266c9", // BTC/USD
     targetPrice: ethers.parseUnits('150000', 8), // $150,000 (Pyth uses 8 decimals)
@@ -55,7 +55,7 @@ async function createBTCMarket() {
 
   try {
     console.log('🚀 Creating market transaction...');
-    
+
     const tx = await chimeraContract.createMarket(
       marketData.title,
       marketData.description,
@@ -91,23 +91,23 @@ async function createBTCMarket() {
     if (marketCreatedEvent) {
       const parsed = chimeraContract.interface.parseLog(marketCreatedEvent);
       const marketId = parsed.args.marketId.toString();
-      
+
       console.log(`\n🎯 Market Created Successfully!`);
       console.log(`   Market ID: ${marketId}`);
       console.log(`   Transaction: ${tx.hash}`);
       console.log(`   Block: ${receipt.blockNumber}`);
       console.log(`   Gas Used: ${receipt.gasUsed.toString()}`);
-      
+
       console.log(`\n🌐 View Market:`);
       console.log(`   Frontend: http://localhost:3000/markets/${marketId}`);
       console.log(`   Blockscout: https://hashscan.io/testnet/transaction/${tx.hash}`);
-      
+
       console.log(`\n📈 Market Features:`);
       console.log(`   ✅ Real-time BTC price tracking via Pyth Oracle`);
       console.log(`   ✅ Automatic resolution when BTC hits $150K`);
       console.log(`   ✅ AI analysis and recommendations`);
       console.log(`   ✅ Agent delegation support`);
-      
+
       return {
         success: true,
         marketId,
@@ -125,7 +125,7 @@ async function createBTCMarket() {
 
   } catch (error) {
     console.error('❌ Error creating market:', error);
-    
+
     if (error.code === 'INSUFFICIENT_FUNDS') {
       console.log('\n💡 Solution: Fund your wallet with HBAR for gas fees');
       console.log(`   Wallet: ${wallet.address}`);
@@ -136,7 +136,7 @@ async function createBTCMarket() {
       console.log('   - Invalid parameters');
       console.log('   - Insufficient permissions');
     }
-    
+
     return {
       success: false,
       error: error.message

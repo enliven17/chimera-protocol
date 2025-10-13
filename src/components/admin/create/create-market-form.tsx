@@ -333,6 +333,19 @@ export function CreateMarketForm({ onSubmit, isLoading: externalLoading = false 
 
             <div className="space-y-2">
               <Label htmlFor="imageURI" className="text-gray-300">Market Image (Optional)</Label>
+              {formData.question.toLowerCase().includes('bitcoin') || formData.question.toLowerCase().includes('btc') ? (
+                <div className="mb-2">
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => setFormData(prev => ({ ...prev, imageURI: '/bitcoin.png' }))}
+                    className="text-xs border-yellow-500/30 text-yellow-400 hover:bg-yellow-500/10"
+                  >
+                    Use Bitcoin Logo
+                  </Button>
+                </div>
+              ) : null}
               {(imagePreview || formData.imageURI) && (
                 <div className="relative">
                   <div className="relative w-full h-48 bg-gray-800 rounded-lg overflow-hidden border border-gray-700">
