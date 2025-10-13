@@ -1,35 +1,18 @@
-import { useQuery, useSubscription } from '@tanstack/react-query';
-import { 
-  envioClient, 
-  GET_MARKETS_QUERY, 
-  GET_MARKET_BETS_QUERY,
-  GET_USER_POSITIONS_QUERY,
-  GET_MARKET_RESOLUTIONS_QUERY,
-  GET_AGENT_DELEGATIONS_QUERY,
-  SUBSCRIBE_MARKET_BETS,
-  SUBSCRIBE_NEW_MARKETS,
-  MarketCreatedEvent,
-  BetPlacedEvent,
-  MarketResolvedEvent,
-  AgentDelegationEvent
-} from '@/lib/envio-client';
+import { useQuery } from '@tanstack/react-query';
+import { EnvioClient } from '@/lib/envio-client';
 import React from 'react';
 
-export function useEnvioMarkets(limit = 50, offset = 0) {
+const envioClient = new EnvioClient();
+
+export function useEnvioMarkets() {
   return useQuery({
-    queryKey: ['envio-markets', limit, offset],
+    queryKey: ['envio-markets'],
     queryFn: async () => {
       try {
-        const response = await envioClient.request(GET_MARKETS_QUERY, {
-          limit,
-          offset,
-          where: {}
-        });
-        return response.MarketCreated as MarketCreatedEvent[];
+        return await envioClient.getActiveMarkets();
       } catch (error) {
         console.warn('Envio API not available, using fallback data');
-        // Return empty array as fallback
-        return [] as MarketCreatedEvent[];
+        return [];
       }
     },
     refetchInterval: 5000, // Refetch every 5 seconds
@@ -41,40 +24,30 @@ export function useEnvioMarketBets(marketId: string) {
   return useQuery({
     queryKey: ['envio-market-bets', marketId],
     queryFn: async () => {
-      const response = await envioClient.request(GET_MARKET_BETS_QUERY, {
-        marketId
-      });
-      return response.BetPlaced as BetPlacedEvent[];
+      return await envioClient.getMarketHistory(marketId);
     },
     enabled: !!marketId,
     refetchInterval: 3000, // Refetch every 3 seconds for active betting
   });
 }
 
-export function useEnvioUserPositions(userAddress: string) {
+export function useEnvioUserBets(userAddress: string) {
   return useQuery({
-    queryKey: ['envio-user-positions', userAddress],
+    queryKey: ['envio-user-bets', userAddress],
     queryFn: async () => {
-      const response = await envioClient.request(GET_USER_POSITIONS_QUERY, {
-        user: userAddress.toLowerCase()
-      });
-      return response.BetPlaced as BetPlacedEvent[];
+      return await envioClient.getUserBets(userAddress.toLowerCase());
     },
     enabled: !!userAddress,
     refetchInterval: 10000, // Refetch every 10 seconds
   });
 }
 
-export function useEnvioMarketResolutions(marketId: string) {
+export function useEnvioMarketResolutions() {
   return useQuery({
-    queryKey: ['envio-market-resolutions', marketId],
+    queryKey: ['envio-market-resolutions'],
     queryFn: async () => {
-      const response = await envioClient.request(GET_MARKET_RESOLUTIONS_QUERY, {
-        marketId
-      });
-      return response.MarketResolved as MarketResolvedEvent[];
+      return await envioClient.getMarketResolutions();
     },
-    enabled: !!marketId,
   });
 }
 
@@ -82,10 +55,7 @@ export function useEnvioAgentDelegations(userAddress: string) {
   return useQuery({
     queryKey: ['envio-agent-delegations', userAddress],
     queryFn: async () => {
-      const response = await envioClient.request(GET_AGENT_DELEGATIONS_QUERY, {
-        user: userAddress.toLowerCase()
-      });
-      return response.AgentDelegationUpdated as AgentDelegationEvent[];
+      return await envioClient.getAgentDelegations(userAddress.toLowerCase());
     },
     enabled: !!userAddress,
     refetchInterval: 15000, // Refetch every 15 seconds
@@ -95,11 +65,11 @@ export function useEnvioAgentDelegations(userAddress: string) {
 // Real-time market activity hook
 export function useEnvioMarketActivity(marketId: string) {
   const betsQuery = useEnvioMarketBets(marketId);
-  const resolutionsQuery = useEnvioMarketResolutions(marketId);
+  const resolutionsQuery = useEnvioMarketResolutions();
 
   return {
     bets: betsQuery.data || [],
-    resolutions: resolutionsQuery.data || [],
+    resolutions: resolutionsQuery.data?.filter(r => r.marketId === marketId) || [],
     isLoading: betsQuery.isLoading || resolutionsQuery.isLoading,
     error: betsQuery.error || resolutionsQuery.error,
     refetch: () => {
@@ -161,7 +131,7 @@ export function formatEnvioTimestamp(timestamp: string): string {
 }
 
 // Helper to calculate market odds from Envio data
-export function calculateMarketOdds(bets: BetPlacedEvent[]) {
+export function calculateMarketOdds(bets: any[]) {
   if (!bets || bets.length === 0) {
     return { optionA: 50, optionB: 50 };
   }

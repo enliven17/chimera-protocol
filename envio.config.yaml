@@ -5,8 +5,7 @@ schema: schema.graphql
 
 contracts:
   - name: ChimeraProtocol
-    handler: src/EventHandlers.ts
-    events:
+    abi:
       - event: "MarketCreated(uint256 indexed marketId, string title, address indexed creator, uint8 marketType)"
       - event: "BetPlaced(uint256 indexed marketId, address indexed user, address indexed agent, uint8 option, uint256 amount, uint256 shares)"
       - event: "MarketResolved(uint256 indexed marketId, uint8 outcome, address indexed resolver, int64 finalPrice)"
@@ -17,7 +16,7 @@ networks:
   - id: 296
     rpc_config:
       url: https://testnet.hashio.io/api
-    start_block: 26000000
+    start_block: 26128088
     contracts:
       - name: ChimeraProtocol
         address: "0x7Bee0AB565e6aB33009647174Eb8cd55B56EcD7c"

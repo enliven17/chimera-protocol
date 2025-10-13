@@ -4,31 +4,28 @@ import { GraphQLClient } from 'graphql-request';
 export class EnvioClient {
   private client: GraphQLClient;
 
-  constructor(endpoint: string) {
+  constructor(endpoint: string = 'https://indexer.dev.hyperindex.xyz/42aac99/v1/graphql') {
     this.client = new GraphQLClient(endpoint);
   }
 
   async getActiveMarkets() {
     const query = `
       query GetActiveMarkets {
-        markets(where: {status: 0, resolved: false}) {
+        MarketCreatedEvent(limit: 100, order_by: {blockTimestamp: desc}) {
           id
           marketId
           title
-          totalPool
-          totalOptionAShares
-          totalOptionBShares
-          createdAt
-          updatedAt
+          creator
           marketType
-          status
+          blockTimestamp
+          transactionHash
         }
       }
     `;
 
     try {
       const data = await this.client.request(query);
-      return data.markets || [];
+      return data.MarketCreatedEvent || [];
     } catch (error) {
       console.error('Error fetching markets:', error);
       return [];
@@ -38,45 +35,51 @@ export class EnvioClient {
   async getMarketHistory(marketId: string) {
     const query = `
       query GetMarketHistory($marketId: String!) {
-        betPlacedEvents(where: {marketId: $marketId}) {
+        BetPlacedEvent(where: {marketId: {_eq: $marketId}}, order_by: {blockTimestamp: desc}) {
           id
+          marketId
           user
           agent
           option
           amount
           shares
           blockTimestamp
+          transactionHash
         }
       }
     `;
 
     try {
       const data = await this.client.request(query, { marketId });
-      return data.betPlacedEvents || [];
+      return data.BetPlacedEvent || [];
     } catch (error) {
       console.error('Error fetching market history:', error);
       return [];
     }
   }
 
-  async getUserPositions(userAddress: string) {
+  async getUserBets(userAddress: string) {
     const query = `
-      query GetUserPositions($user: String!) {
-        userPositions(where: {user: $user}) {
+      query GetUserBets($user: String!) {
+        BetPlacedEvent(where: {user: {_eq: $user}}, order_by: {blockTimestamp: desc}) {
           id
           marketId
-          optionAShares
-          optionBShares
-          totalInvested
+          user
+          agent
+          option
+          amount
+          shares
+          blockTimestamp
+          transactionHash
         }
       }
     `;
 
     try {
       const data = await this.client.request(query, { user: userAddress });
-      return data.userPositions || [];
+      return data.BetPlacedEvent || [];
     } catch (error) {
-      console.error('Error fetching user positions:', error);
+      console.error('Error fetching user bets:', error);
       return [];
     }
   }
@@ -84,20 +87,47 @@ export class EnvioClient {
   async getAgentDelegations(userAddress: string) {
     const query = `
       query GetAgentDelegations($user: String!) {
-        agentDelegations(where: {user: $user, approved: true}) {
+        AgentDelegationUpdatedEvent(where: {user: {_eq: $user}, approved: {_eq: true}}, order_by: {blockTimestamp: desc}) {
           id
+          user
           agent
+          approved
           maxBetAmount
-          createdAt
+          blockTimestamp
+          transactionHash
         }
       }
     `;
 
     try {
       const data = await this.client.request(query, { user: userAddress });
-      return data.agentDelegations || [];
+      return data.AgentDelegationUpdatedEvent || [];
     } catch (error) {
       console.error('Error fetching agent delegations:', error);
+      return [];
+    }
+  }
+
+  async getMarketResolutions() {
+    const query = `
+      query GetMarketResolutions {
+        MarketResolvedEvent(order_by: {blockTimestamp: desc}) {
+          id
+          marketId
+          outcome
+          resolver
+          finalPrice
+          blockTimestamp
+          transactionHash
+        }
+      }
+    `;
+
+    try {
+      const data = await this.client.request(query);
+      return data.MarketResolvedEvent || [];
+    } catch (error) {
+      console.error('Error fetching market resolutions:', error);
       return [];
     }
   }

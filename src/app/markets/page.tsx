@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useChimeraProtocol } from "@/hooks/useChimeraProtocol";
+import { useEnvioMarkets } from "@/hooks/useEnvioData";
 import { Market } from "@/types/market";
 import {
   DollarSign,
@@ -22,13 +23,23 @@ export default function MarketsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("active");
 
-  // Use ChimeraProtocol contract hooks for real data
+  // Use both ChimeraProtocol contract hooks and Envio data
   const { useAllMarkets, useActiveMarkets } = useChimeraProtocol();
   const { data: allMarkets, isLoading: allMarketsLoading, refetch: refetchAllMarkets } = useAllMarkets();
   const { data: activeMarkets, isLoading: activeMarketsLoading, refetch: refetchActiveMarkets } = useActiveMarkets();
+  
+  // Get Envio data for enhanced market information
+  const { data: envioMarkets, isLoading: envioLoading } = useEnvioMarkets();
 
   const loading = activeMarketsLoading || allMarketsLoading;
   const error = null;
+
+  // Log Envio data for debugging
+  useEffect(() => {
+    if (envioMarkets && envioMarkets.length > 0) {
+      console.log('📊 Envio Markets Data:', envioMarkets);
+    }
+  }, [envioMarkets]);
 
   // Filter markets based on active tab
   const getMarketsForTab = () => {
