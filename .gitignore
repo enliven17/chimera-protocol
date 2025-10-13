@@ -9,6 +9,13 @@ artifacts
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+
+# agents dependencies
+agents/*/node_modules/
+agents/*/__pycache__/
+agents/*/.env
+agents/*/logs/
+agents/*/temp/
 docs
 # testing
 /coverage
