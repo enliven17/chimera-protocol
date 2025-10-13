@@ -80,6 +80,22 @@ ChimeraProtocol.BetPlaced.handler(async ({ event, context }) => {
     };
 
     context.Market.set(updatedMarket);
+  } else {
+    // Create a placeholder market if BetPlaced arrives before MarketCreated
+    context.Market.set({
+      id: event.params.marketId.toString(),
+      marketId: event.params.marketId,
+      title: "", // unknown at this moment
+      creator: "0x0000000000000000000000000000000000000000",
+      marketType: 0,
+      status: 0,
+      resolved: false,
+      totalPool: event.params.amount,
+      totalOptionAShares: event.params.option === 0 ? event.params.shares : BigInt(0),
+      totalOptionBShares: event.params.option === 1 ? event.params.shares : BigInt(0),
+      createdAt: event.block.timestamp,
+      updatedAt: event.block.timestamp,
+    });
   }
 
   // Create or update UserPosition entity
