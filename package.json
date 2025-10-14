@@ -17,6 +17,8 @@
     "debug:frontend": "node scripts/debug-frontend.js",
     "test:vincent": "cd agents/lit-protocol && npm test",
     "start:vincent-skill": "cd agents/lit-protocol && node chimera-vincent-skill.js",
+    "start:simple-vincent": "cd agents/lit-protocol && node simple-vincent.js",
+    "start:test-vincent": "cd agents/lit-protocol && node test-vincent.js",
     "start:asi-agent": "cd agents/asi-agent && python market_analyzer.py",
     "start:asi-headless": "cd agents/asi-agent && python market_analyzer.py",
     "hypersync:sample": "node scripts/hypersync-sample.js",

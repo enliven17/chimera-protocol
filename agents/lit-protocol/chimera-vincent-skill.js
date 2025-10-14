@@ -35,8 +35,11 @@ class ChimeraVincentSkill {
     // Initialize Hedera client
     this.hederaClient = Client.forTestnet();
     
-    // Initialize Hedera provider
-    this.provider = new ethers.JsonRpcProvider(this.config.hederaRpcUrl);
+    // Initialize Hedera provider with network config
+    this.provider = new ethers.JsonRpcProvider(this.config.hederaRpcUrl, {
+      chainId: 296,
+      name: "hedera-testnet"
+    });
     
     // Initialize ChimeraProtocol contract
     this.chimeraContract = new ethers.Contract(
