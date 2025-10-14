@@ -1,4 +1,5 @@
 import "@nomicfoundation/hardhat-toolbox";
+import "@nomicfoundation/hardhat-verify";
 import "dotenv/config";
 
 /** @type import('hardhat/config').HardhatUserConfig */
@@ -18,6 +19,11 @@ export default {
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
       chainId: 296,
     },
+    chimera: {
+      url: "https://testnet.hashio.io/api",
+      accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
+      chainId: 296,
+    },
     hedera_mainnet: {
       url: process.env.HEDERA_MAINNET_RPC_URL || "https://mainnet.hashio.io/api",
       accounts: process.env.PRIVATE_KEY ? [process.env.PRIVATE_KEY] : [],
@@ -26,6 +32,21 @@ export default {
     localhost: {
       url: "http://127.0.0.1:8545",
     },
+  },
+  etherscan: {
+    apiKey: {
+      chimera: 'empty'
+    },
+    customChains: [
+      {
+        network: "chimera",
+        chainId: 296,
+        urls: {
+          apiURL: "https://chimera.cloud.blockscout.com/api",
+          browserURL: "https://chimera.cloud.blockscout.com"
+        }
+      }
+    ]
   },
   paths: {
     sources: "./contracts",

@@ -1,157 +1,145 @@
 import { useQuery } from '@tanstack/react-query';
-import { EnvioClient } from '@/lib/envio-client';
 import React from 'react';
 
-const envioClient = new EnvioClient();
+// This file is deprecated - use useDirectContract instead
+// Keeping for backward compatibility
 
-export function useEnvioMarkets() {
+export function useBlockscoutMarkets() {
   return useQuery({
-    queryKey: ['envio-markets'],
+    queryKey: ['blockscout-markets'],
     queryFn: async () => {
-      try {
-        return await envioClient.getActiveMarkets();
-      } catch (error) {
-        console.warn('Envio API not available, using fallback data');
-        return [];
-      }
+      console.warn('useBlockscoutMarkets is deprecated - use useDirectContract instead');
+      return [];
     },
-    refetchInterval: 5000, // Refetch every 5 seconds
-    retry: 1, // Only retry once
+    refetchInterval: 10000,
+    retry: 2,
   });
 }
 
-export function useEnvioMarketBets(marketId: string) {
+// Backward compatibility
+export const useEnvioMarkets = useBlockscoutMarkets;
+
+export function useBlockscoutMarketBets(marketId: string) {
   return useQuery({
-    queryKey: ['envio-market-bets', marketId],
+    queryKey: ['blockscout-market-bets', marketId],
     queryFn: async () => {
-      return await envioClient.getMarketHistory(marketId);
+      console.warn('useBlockscoutMarketBets is deprecated - use direct contract calls instead');
+      return [];
     },
     enabled: !!marketId,
-    refetchInterval: 3000, // Refetch every 3 seconds for active betting
+    refetchInterval: 15000,
   });
 }
 
-export function useEnvioUserBets(userAddress: string) {
+// Backward compatibility
+export const useEnvioMarketBets = useBlockscoutMarketBets;
+
+export function useBlockscoutUserBets(userAddress: string) {
   return useQuery({
-    queryKey: ['envio-user-bets', userAddress],
+    queryKey: ['blockscout-user-bets', userAddress],
     queryFn: async () => {
-      return await envioClient.getUserBets(userAddress.toLowerCase());
+      console.warn('useBlockscoutUserBets is deprecated');
+      return [];
     },
     enabled: !!userAddress,
-    refetchInterval: 10000, // Refetch every 10 seconds
+    refetchInterval: 20000,
   });
 }
 
-export function useEnvioMarketResolutions() {
+// Backward compatibility
+export const useEnvioUserBets = useBlockscoutUserBets;
+
+export function useBlockscoutChimeraStats() {
   return useQuery({
-    queryKey: ['envio-market-resolutions'],
+    queryKey: ['blockscout-chimera-stats'],
     queryFn: async () => {
-      return await envioClient.getMarketResolutions();
+      console.warn('useBlockscoutChimeraStats is deprecated');
+      return null;
     },
+    refetchInterval: 30000,
   });
 }
 
-export function useEnvioAgentDelegations(userAddress: string) {
+// Backward compatibility - market resolutions now part of stats
+export const useEnvioMarketResolutions = useBlockscoutChimeraStats;
+
+export function useBlockscoutAgentDelegations(userAddress: string) {
   return useQuery({
-    queryKey: ['envio-agent-delegations', userAddress],
+    queryKey: ['blockscout-agent-delegations', userAddress],
     queryFn: async () => {
-      return await envioClient.getAgentDelegations(userAddress.toLowerCase());
+      console.warn('useBlockscoutAgentDelegations is deprecated');
+      return [];
     },
     enabled: !!userAddress,
-    refetchInterval: 15000, // Refetch every 15 seconds
+    refetchInterval: 30000,
   });
 }
 
-// Real-time market activity hook
-export function useEnvioMarketActivity(marketId: string) {
-  const betsQuery = useEnvioMarketBets(marketId);
-  const resolutionsQuery = useEnvioMarketResolutions();
+// Backward compatibility
+export const useEnvioAgentDelegations = useBlockscoutAgentDelegations;
+
+// Market activity hook (deprecated)
+export function useBlockscoutMarketActivity(marketId: string) {
+  const betsQuery = useBlockscoutMarketBets(marketId);
+  const statsQuery = useBlockscoutChimeraStats();
 
   return {
-    bets: betsQuery.data || [],
-    resolutions: resolutionsQuery.data?.filter(r => r.marketId === marketId) || [],
-    isLoading: betsQuery.isLoading || resolutionsQuery.isLoading,
-    error: betsQuery.error || resolutionsQuery.error,
+    bets: [],
+    stats: null,
+    isLoading: false,
+    error: null,
     refetch: () => {
-      betsQuery.refetch();
-      resolutionsQuery.refetch();
+      console.warn('useBlockscoutMarketActivity is deprecated');
     }
   };
 }
 
-// Market statistics derived from Envio data
-export function useEnvioMarketStats(marketId: string) {
-  const { data: bets, isLoading } = useEnvioMarketBets(marketId);
+// Backward compatibility
+export const useEnvioMarketActivity = useBlockscoutMarketActivity;
 
+// Market statistics (deprecated)
+export function useBlockscoutMarketStats(marketId: string) {
   const stats = React.useMemo(() => {
-    if (!bets || bets.length === 0) {
-      return {
-        totalBets: 0,
-        totalVolume: '0',
-        optionAVolume: '0',
-        optionBVolume: '0',
-        uniqueBettors: 0,
-        averageBetSize: '0',
-        lastBetTime: null
-      };
-    }
-
-    const totalBets = bets.length;
-    const totalVolume = bets.reduce((sum, bet) => sum + parseFloat(bet.amount), 0);
-    const optionABets = bets.filter(bet => bet.option === 0);
-    const optionBBets = bets.filter(bet => bet.option === 1);
-    
-    const optionAVolume = optionABets.reduce((sum, bet) => sum + parseFloat(bet.amount), 0);
-    const optionBVolume = optionBBets.reduce((sum, bet) => sum + parseFloat(bet.amount), 0);
-    
-    const uniqueBettors = new Set(bets.map(bet => bet.user)).size;
-    const averageBetSize = totalVolume / totalBets;
-    const lastBetTime = bets[0]?.block_timestamp;
-
     return {
-      totalBets,
-      totalVolume: totalVolume.toFixed(2),
-      optionAVolume: optionAVolume.toFixed(2),
-      optionBVolume: optionBVolume.toFixed(2),
-      uniqueBettors,
-      averageBetSize: averageBetSize.toFixed(2),
-      lastBetTime
+      totalBets: 0,
+      totalVolume: '0',
+      optionAVolume: '0',
+      optionBVolume: '0',
+      uniqueBettors: 0,
+      averageBetSize: '0',
+      lastBetTime: null
     };
-  }, [bets]);
+  }, []);
 
   return {
     ...stats,
-    isLoading
+    isLoading: false
   };
 }
 
-// Helper to format Envio timestamps
-export function formatEnvioTimestamp(timestamp: string): string {
-  return new Date(parseInt(timestamp) * 1000).toLocaleString();
+// Backward compatibility
+export const useEnvioMarketStats = useBlockscoutMarketStats;
+
+// Helper to format Blockscout timestamps
+export function formatBlockscoutTimestamp(timestamp: string): string {
+  return new Date(timestamp).toLocaleString();
 }
 
-// Helper to calculate market odds from Envio data
+// Backward compatibility
+export const formatEnvioTimestamp = formatBlockscoutTimestamp;
+
+// Helper to calculate market odds from Blockscout data
 export function calculateMarketOdds(bets: any[]) {
   if (!bets || bets.length === 0) {
     return { optionA: 50, optionB: 50 };
   }
 
-  const optionAVolume = bets
-    .filter(bet => bet.option === 0)
-    .reduce((sum, bet) => sum + parseFloat(bet.amount), 0);
-    
-  const optionBVolume = bets
-    .filter(bet => bet.option === 1)
-    .reduce((sum, bet) => sum + parseFloat(bet.amount), 0);
-
-  const totalVolume = optionAVolume + optionBVolume;
+  // Since Blockscout doesn't have option data, we'll use transaction value as proxy
+  const totalVolume = bets.reduce((sum: number, bet: any) => sum + parseFloat(bet.amount || '0'), 0);
   
-  if (totalVolume === 0) {
-    return { optionA: 50, optionB: 50 };
-  }
-
+  // Placeholder logic - in real implementation, you'd need to decode transaction data
   return {
-    optionA: Math.round((optionAVolume / totalVolume) * 100),
-    optionB: Math.round((optionBVolume / totalVolume) * 100)
+    optionA: 50, // Placeholder
+    optionB: 50  // Placeholder
   };
 }

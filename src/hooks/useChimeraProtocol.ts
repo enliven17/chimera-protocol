@@ -56,6 +56,9 @@ export function useChimeraProtocol() {
       address: CONTRACT_ADDRESS,
       abi: CHIMERA_ABI,
       functionName: "getAllMarkets",
+      query: {
+        enabled: !!CONTRACT_ADDRESS, // Enable even without wallet
+      }
     });
 
     // Transform contract data to frontend format
@@ -72,6 +75,9 @@ export function useChimeraProtocol() {
       address: CONTRACT_ADDRESS,
       abi: CHIMERA_ABI,
       functionName: "getActiveMarkets",
+      query: {
+        enabled: !!CONTRACT_ADDRESS, // Enable even without wallet
+      }
     });
 
     // Transform contract data to frontend format

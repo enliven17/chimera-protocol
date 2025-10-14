@@ -3,7 +3,7 @@
 
 import { MarketCard } from "@/components/market/market-card";
 import { Button } from "@/components/ui/button";
-import { usePredictionContractRead } from "@/hooks/use-prediction-contract";
+import { useDirectContract } from "@/hooks/useDirectContract";
 import { ArrowRight, TrendingUp, BarChart3, Activity, Coins, Users } from "lucide-react";
 import { formatCompactCurrency } from "@/lib/constants";
 import Link from "next/link";
@@ -11,10 +11,8 @@ import React from "react";
 import CountUp from "react-countup";
 
 export default function HomePage() {
-    // Use contract hooks for real data
-    const { activeMarkets, allMarkets, activeMarketsLoading, allMarketsLoading } = usePredictionContractRead();
-    
-    const marketsLoading = activeMarketsLoading || allMarketsLoading;
+    // Use direct contract calls (wagmi hooks not working without wallet)
+    const { activeMarkets, allMarkets, loading: marketsLoading } = useDirectContract();
     const marketsError = null;
     const featuredMarkets = activeMarkets.slice(0, 3); // Show first 3 as featured
 

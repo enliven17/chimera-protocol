@@ -33,7 +33,8 @@ def setup_environment():
         print("⚠️  .env file not found, creating template...")
         with open(".env.template", "w") as f:
             f.write("""# ASI Alliance Agent Configuration
-ENVIO_INDEXER_URL=http://localhost:8080/v1/graphql
+HEDERA_RPC_URL=https://testnet.hashio.io/api
+CHIMERA_CONTRACT_ADDRESS=0x7a9D78D1E5fe688F80D4C2c06Ca4C0407A967644
 LIT_PROTOCOL_ENDPOINT=http://localhost:3001
 ASI_AGENT_SEED=your_agent_seed_here
 ASI_AGENT_PORT=8001

@@ -1,13 +1,13 @@
-const hre = require("hardhat");
+import hre from "hardhat";
 
 async function main() {
   console.log("🚀 Creating ETH $7K Market...");
 
-  const contractAddress = "0xa17952b425026191D79Fc3909B77C40854EBB4F0";
-  
+  const contractAddress = "0x0e63645e09051ccB844c002Ff52Cc57AB086C826"; // ChimeraProtocol
+
   // Get the contract instance
-  const PredictionMarket = await hre.ethers.getContractFactory("PredictionMarket");
-  const predictionMarket = await PredictionMarket.attach(contractAddress);
+  const ChimeraProtocol = await hre.ethers.getContractFactory("ChimeraProtocol");
+  const chimeraProtocol = await ChimeraProtocol.attach(contractAddress);
 
   // Market details
   const title = "Will Ethereum reach $7,000 by December 31, 2025?";
@@ -15,26 +15,26 @@ async function main() {
   const optionA = "Yes - ETH ≥ $7K";
   const optionB = "No - ETH < $7K";
   const category = 4; // Finance category
-  
+
   // End time: December 31, 2025, 23:59 UTC
   const endDate = new Date("2025-12-31T23:59:00Z");
   const endTime = Math.floor(endDate.getTime() / 1000);
-  
-  const minBet = hre.ethers.utils.parseEther("0.05"); // 0.05 tCTC minimum
-  const maxBet = hre.ethers.utils.parseEther("25.0"); // 25 tCTC maximum
+
+  const minBet = hre.ethers.parseUnits("1", 6); // 1 PYUSD minimum (6 decimals)
+  const maxBet = hre.ethers.parseUnits("1000", 6); // 1000 PYUSD maximum
   const imageUrl = "/ethereum.jpg";
 
   console.log("📋 Market Details:");
   console.log("Title:", title);
   console.log("End Date:", endDate.toISOString());
-  console.log("Min Bet:", hre.ethers.utils.formatEther(minBet), "tCTC");
-  console.log("Max Bet:", hre.ethers.utils.formatEther(maxBet), "tCTC");
+  console.log("Min Bet:", hre.ethers.formatUnits(minBet, 6), "PYUSD");
+  console.log("Max Bet:", hre.ethers.formatUnits(maxBet, 6), "PYUSD");
   console.log("Image:", imageUrl);
-  
+
   try {
     console.log("📤 Creating ETH market...");
-    
-    const tx = await predictionMarket.createMarket(
+
+    const tx = await chimeraProtocol.createMarket(
       title,
       description,
       optionA,
@@ -43,16 +43,20 @@ async function main() {
       endTime,
       minBet,
       maxBet,
-      imageUrl
+      imageUrl,
+      1, // MarketType.CustomEvent
+      "0x0000000000000000000000000000000000000000000000000000000000000000", // No Pyth price ID for custom event
+      0, // No target price
+      false // No price direction
     );
 
     console.log("⏳ Waiting for confirmation...");
     const receipt = await tx.wait();
-    
+
     console.log("✅ ETH Market created successfully!");
     console.log("📝 Transaction hash:", tx.hash);
     console.log("⛽ Gas used:", receipt.gasUsed.toString());
-    
+
     // Get the market ID from events
     const marketCreatedEvent = receipt.events?.find(e => e.event === 'MarketCreated');
     if (marketCreatedEvent) {
@@ -63,7 +67,7 @@ async function main() {
 
   } catch (error) {
     console.error("❌ ETH Market creation failed:", error);
-    
+
     if (error.message.includes("End time must be in the future")) {
       console.log("💡 Tip: Make sure the end date is in the future");
     }

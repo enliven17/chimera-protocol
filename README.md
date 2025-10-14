@@ -20,7 +20,7 @@ ChimeraAI combines cutting-edge AI agents with decentralized prediction markets 
 |---------|-------------|-------------|
 | **ASI Alliance** | MeTTa reasoning agents for market analysis | AI Agent Integration |
 | **Lit Protocol** | Vincent Skill for secure execution | Programmable Key Pairs |
-| **Envio** | HyperIndex for real-time data indexing | Data Infrastructure |
+| **Direct RPC** | Direct contract calls for real-time data | Data Infrastructure |
 | **Pyth Network** | Oracle price feeds for price markets | Oracle Integration |
 | **Blockscout** | On-chain analytics and monitoring | Blockchain Analytics |
 
@@ -71,9 +71,9 @@ graph TB
     end
 
     subgraph "Data Layer"
-        ENV[Envio HyperIndex]
+        RPC[Direct RPC Calls]
         PYT[Pyth Oracle]
-        BS[Blockscout]
+        ETH[Ethers.js]
     end
 
     subgraph "Blockchain Layer"
@@ -88,30 +88,29 @@ graph TB
     
     SD --> ASI
     SD --> LIT
-    SD --> ENV
-    SD --> BS
+    SD --> RPC
+    SD --> ETH
     
     MI --> ASI
-    MI --> ENV
+    MI --> RPC
     MI --> PYT
     
     BR --> BRIDGE
-    BR --> ENV
+    BR --> RPC
     
     ASI --> LIT
     LIT --> CP
     CP --> PYUSD
     CP --> PYT
     
-    ENV --> CP
-    BS --> CP
+    RPC --> CP
+    ETH --> CP
 ```
 | **ASI Alliance** | MeTTa reasoning with Envio data analysis | 🚀 Best use of Artificial Superintelligence Alliance |
 | **Lit Protocol** | Hedera Agent Kit + Vincent Skills for secure execution | 🎨 Best Hedera x Lit Protocol Vincent Skill |
 | **Hedera** | EVM contracts + Agent Kit integration | EVM Innovator Track + Best Use of Hedera Agent Kit |
 | **Pyth Network** | Pull Oracle for market resolution | ⛓️ Most Innovative use of Pyth pull oracle |
 | **PayPal USD** | Wrapped PYUSD as betting currency | 🥇 Grand Prize / 🎖️ PYUSD Consumer Champion |
-| **Envio** | HyperIndex for real-time data indexing | 🏆 Best Use of HyperIndex |
 | **Blockscout** | Autoscout Explorer + SDK integration | 🚀 Best use of Autoscout |
 
 ## 🏗️ Architecture
@@ -129,12 +128,12 @@ graph TB
          └───────────────────────┼───────────────────────┘
                                  │
          ┌─────────────────┐    │    ┌─────────────────┐
-         │      Envio      │    │    │      Pyth       │
-         │   (Indexing)    │────┼────│    (Oracle)     │
+         │   Direct RPC    │    │    │      Pyth       │
+         │   (Ethers.js)   │────┼────│    (Oracle)     │
          │                 │    │    │                 │
-         │ • HyperIndex    │    │    │ • Price Feeds   │
-         │ • Real-time API │    │    │ • Pull Oracle   │
-         │ • GraphQL       │    │    │ • Market Data   │
+         │ • Contract Calls│    │    │ • Price Feeds   │
+         │ • Real-time Data│    │    │ • Pull Oracle   │
+         │ • No Indexing   │    │    │ • Market Data   │
          └─────────────────┘    │    └─────────────────┘
                                 │
                     ┌─────────────────┐
@@ -181,8 +180,8 @@ Run Lit Vincent Skill and ASI Agent locally without any UI.
 npm run start:vincent-skill
 
 # 2) Start ASI Agent (Windows PowerShell)
-$env:ENVIO_INDEXER_URL = "http://localhost:8080/v1/graphql"  # set your Envio URL
-$env:LIT_PROTOCOL_ENDPOINT = "http://localhost:3001"         # Vincent Skill URL
+$env:BLOCKSCOUT_API_URL = "https://chimera-explorer.blockscout.com"  # Autoscout URL
+$env:LIT_PROTOCOL_ENDPOINT = "http://localhost:3001"                  # Vincent Skill URL
 npm run start:asi-headless
 ```
 
@@ -198,32 +197,31 @@ $env:LIT_PROTOCOL_ENDPOINT = "http://localhost:3001"
 npm run lit:execute -- place_bet 1 0 25
 ```
 
-## 📡 Envio Integration
+## 📡 Direct RPC Integration
 
-### HyperIndex (Hosted)
-- Ensure your indexer is deployed on Envio Hosted:
-  1. Review `envio.config.yaml` (network 296, contract, events, field selection)
-  2. Push project to Envio Hosted (via dashboard or CLI per docs)
-  3. Obtain your Hosted GraphQL endpoint (e.g., `https://hosted.envio.dev/api/<project>`) 
-  4. Set `ENVIO_INDEXER_URL` to this endpoint in both frontend env and ASI Agent runtime
-  5. Run `npm run envio:codegen` locally if schema changes
+### Ethers.js Contract Calls
+- Direct contract interaction without indexing:
+  1. Uses Hedera Testnet RPC endpoint
+  2. Real-time contract state reading
+  3. No external dependencies or indexing delays
+  4. Efficient for read-only operations
 
 Environment variables (Windows PowerShell):
 ```powershell
-$env:ENVIO_INDEXER_URL = "https://hosted.envio.dev/api/<project>"
+$env:HEDERA_RPC_URL = "https://testnet.hashio.io/api"
 ```
 
 Used by:
 - ASI Agent: `agents/asi-agent/market_analyzer.py`
-- Frontend: `src/lib/envio-client.ts`
+- Frontend: `src/hooks/useDirectContract.ts`
 
-### HyperSync (Sample)
-Run a minimal HyperSync query to fetch recent transactions:
+### Contract Integration
+Access ChimeraProtocol data directly:
 
 ```powershell
-$env:HYPERSYNC_URL = "<your hypersync http endpoint>"
-$env:CHIMERA_ADDRESS = "<chimera contract address>"
-npm run hypersync:sample
+$env:HEDERA_RPC_URL = "https://testnet.hashio.io/api"
+$env:CHIMERA_CONTRACT_ADDRESS = "0x7a9D78D1E5fe688F80D4C2c06Ca4C0407A967644"
+npm run test:frontend
 ```
 
 3. **Deploy contracts:**
@@ -245,8 +243,8 @@ python market_analyzer.py
 cd agents/lit-protocol
 node chimera-vincent-skill.js
 
-# Envio Indexer
-npm run envio:dev
+# Direct RPC calls (no additional setup needed)
+# Uses HEDERA_RPC_URL from .env
 ```
 
 ## 🔧 Core Components
@@ -263,7 +261,7 @@ npm run envio:dev
 ### 2. ASI Alliance Agent
 
 **market_analyzer.py** - Intelligent market analysis agent:
-- Fetches data from Envio HyperIndex
+- Fetches data via direct RPC calls
 - Uses MeTTa reasoning for strategy decisions
 - Implements contrarian betting strategies
 - Sends execution signals to Lit Protocol
@@ -276,13 +274,13 @@ npm run envio:dev
 - Enforces spending limits and permissions
 - Provides audit trail for all actions
 
-### 4. Envio Indexer
+### 4. Direct RPC Integration
 
-Real-time blockchain data indexing:
-- Indexes all ChimeraAI events
-- Provides GraphQL API for agents
-- Tracks market states and user positions
-- Enables fast data queries for AI analysis
+Real-time blockchain data access:
+- Direct contract calls via Ethers.js
+- No indexing delays or external dependencies
+- Real-time market state reading
+- Efficient and reliable data access
 
 ### 5. Frontend (Next.js)
 
@@ -307,7 +305,7 @@ Modern web interface for:
 
 ### ASI Alliance Integration
 - **MeTTa Reasoning:** Advanced logical inference for market analysis
-- **Data Sources:** Envio indexed data + external sentiment
+- **Data Sources:** Direct RPC calls + external sentiment
 - **Strategies:** Contrarian betting, volume analysis, trend following
 
 ### Lit Protocol Security
@@ -343,10 +341,9 @@ npm run dev                  # Start development server
 npm run build               # Build for production
 npm run start               # Start production server
 
-# Envio Indexer
-npm run envio:init          # Initialize indexer
-npm run envio:dev           # Start indexer in dev mode
-npm run envio:codegen       # Generate types
+# Direct Contract Integration
+npm run test:frontend       # Test direct contract calls
+npm run debug:frontend      # Debug contract integration
 
 # Agents
 cd agents/asi-agent && python market_analyzer.py    # Start ASI agent

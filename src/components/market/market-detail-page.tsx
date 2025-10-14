@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useChimeraProtocol } from "@/hooks/useChimeraProtocol";
-import { useEnvioMarketBets } from "@/hooks/useEnvioData";
+import { useDirectContract } from "@/hooks/useDirectContract";
 import { OwnerOnly } from "@/components/auth/owner-only";
 import { useAccount } from "wagmi";
 import { MarketStatus } from "@/types/market";
@@ -43,18 +43,36 @@ export default function MarketDetailPage() {
   const marketId = params.id as string;
   const { address } = useAccount();
 
-  // Use ChimeraProtocol hooks for real data
-  const { useMarket, useUserPosition, claimWinnings } = useChimeraProtocol();
-  const { data: market, isLoading: marketLoading, refetch: refetchMarket } = useMarket(parseInt(marketId));
-  const { data: userPosition, isLoading: positionLoading, refetch: refetchPosition } = useUserPosition(address || "", marketId);
-
-  const loading = marketLoading || positionLoading;
-  const error = null;
+  // Use direct contract calls
+  const { getMarket } = useDirectContract();
+  const [market, setMarket] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Get real market activity data from Envio
-  const { data: marketBets } = useEnvioMarketBets(marketId);
-  const trades = marketBets || [];
+  const fetchMarket = async () => {
+    try {
+      setLoading(true);
+      const marketData = await getMarket(marketId);
+      if (marketData) {
+        setMarket(marketData);
+        setError(null);
+      } else {
+        setError('Market not found');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMarket();
+  }, [marketId]);
+
+  const trades: any[] = []; // Would come from Blockscout or events
   const comments: any[] = []; // Comments would come from a separate system
+  const userPosition = null; // Would need wallet connection
 
   const [betDialogOpen, setBetDialogOpen] = useState(false);
   const [selectedSide, setSelectedSide] = useState<"optionA" | "optionB">("optionA");
@@ -66,13 +84,12 @@ export default function MarketDetailPage() {
     if (!loading && market) {
       const interval = setInterval(() => {
         console.log("Auto-refreshing market data...");
-        refetchMarket();
-        refetchPosition();
+        fetchMarket();
       }, 30000);
 
       return () => clearInterval(interval);
     }
-  }, [loading, market, refetchMarket, refetchPosition]);
+  }, [loading, market]);
 
   // Loading state
   if (loading) {
@@ -84,10 +101,7 @@ export default function MarketDetailPage() {
     return (
       <MarketError
         error={error || "Market not found"}
-        onRetry={() => {
-          refetchMarket();
-          refetchPosition();
-        }}
+        onRetry={fetchMarket}
       />
     );
   }
@@ -148,37 +162,18 @@ export default function MarketDetailPage() {
     setBetDialogOpen(false);
     setTimeout(() => {
       // Refresh contract data
-      refetchMarket();
-      refetchPosition();
+      fetchMarket();
     }, 2000);
   };
 
   const handleClaimWinnings = async () => {
-    if (!market || !userPosition) return;
-    
-    try {
-      await claimWinnings(marketId);
-      setTimeout(() => {
-        refetchMarket();
-        refetchPosition();
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to claim winnings:', error);
-    }
+    // Would need wallet connection and ChimeraProtocol hook
+    console.log('Claim winnings - wallet connection required');
   };
 
   const handleResolveMarket = async (outcome: 0 | 1) => {
-    if (!market) return;
-    
-    try {
-      await resolveMarket(marketId, outcome);
-      setTimeout(() => {
-        refetchMarket();
-        refetchPosition();
-      }, 2000);
-    } catch (error) {
-      console.error('Failed to resolve market:', error);
-    }
+    // Would need wallet connection and ChimeraProtocol hook
+    console.log('Resolve market - wallet connection required', outcome);
   };
 
   return (

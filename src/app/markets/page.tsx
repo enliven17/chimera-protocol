@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useChimeraProtocol } from "@/hooks/useChimeraProtocol";
-import { useEnvioMarkets } from "@/hooks/useEnvioData";
+import { useDirectContract } from "@/hooks/useDirectContract";
 import { Market } from "@/types/market";
 import {
   DollarSign,
@@ -23,23 +23,25 @@ export default function MarketsPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("active");
 
-  // Use both ChimeraProtocol contract hooks and Envio data
-  const { useAllMarkets, useActiveMarkets } = useChimeraProtocol();
-  const { data: allMarkets, isLoading: allMarketsLoading, refetch: refetchAllMarkets } = useAllMarkets();
-  const { data: activeMarkets, isLoading: activeMarketsLoading, refetch: refetchActiveMarkets } = useActiveMarkets();
+  // Use direct contract calls (wagmi hooks not working without wallet)
+  const { allMarkets, activeMarkets, loading, error, refetch } = useDirectContract();
   
-  // Get Envio data for enhanced market information
-  const { data: envioMarkets, isLoading: envioLoading } = useEnvioMarkets();
+  // Debug logging
+  console.log('🔍 Direct Contract Debug:', {
+    allMarkets,
+    activeMarkets,
+    loading,
+    error
+  });
+  
+  // Using direct contract calls instead of wagmi hooks
 
-  const loading = activeMarketsLoading || allMarketsLoading;
-  const error = null;
-
-  // Log Envio data for debugging
+  // Log contract data for debugging
   useEffect(() => {
-    if (envioMarkets && envioMarkets.length > 0) {
-      console.log('📊 Envio Markets Data:', envioMarkets);
+    if (allMarkets && allMarkets.length > 0) {
+      console.log('📊 Contract Markets Data:', allMarkets);
     }
-  }, [envioMarkets]);
+  }, [allMarkets]);
 
   // Filter markets based on active tab
   const getMarketsForTab = () => {
@@ -66,10 +68,7 @@ export default function MarketsPage() {
 
   // Error state
   if (error) {
-    return <MarketError error={error} onRetry={() => {
-      refetchActiveMarkets();
-      refetchAllMarkets();
-    }} />;
+    return <MarketError error={error} onRetry={refetch} />;
   }
 
   return (
@@ -105,10 +104,7 @@ export default function MarketsPage() {
                 {markets.length}
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                {envioMarkets && envioMarkets.length > 0 
-                  ? `${envioMarkets.length} indexed by Envio` 
-                  : 'Currently running'
-                }
+                Live from contract
               </p>
             </div>
 

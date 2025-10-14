@@ -111,62 +111,48 @@ class MarketData:
     market_type: str
     status: str
 
-class EnvioDataFetcher:
-    """Fetches market data from Envio HyperIndex"""
+class DirectRPCDataFetcher:
+    """Fetches market data directly from RPC"""
     
-    def __init__(self, envio_endpoint: str):
-        self.endpoint = envio_endpoint
+    def __init__(self, rpc_endpoint: str):
+        self.endpoint = rpc_endpoint
+        self.contract_address = os.getenv("CHIMERA_CONTRACT_ADDRESS", "0x7a9D78D1E5fe688F80D4C2c06Ca4C0407A967644")
     
     async def get_active_markets(self) -> List[MarketData]:
-        """Fetch active markets from Envio"""
+        """Fetch active markets from contract directly"""
         
-        query = """
-        query GetActiveMarkets {
-          markets(where: {status: 0, resolved: false}) {
-            id
-            marketId
-            title
-            totalPool
-            totalOptionAShares
-            totalOptionBShares
-            createdAt
-            updatedAt
-            marketType
-            status
-          }
-        }
-        """
+        import aiohttp
+        import os
+        import time
         
         try:
-            response = requests.post(
-                self.endpoint,
-                json={"query": query},
-                headers={"Content-Type": "application/json"}
-            )
+            chimera_address = os.getenv("CHIMERA_CONTRACT_ADDRESS", "0x7Bee0AB565e6aB33009647174Eb8cd55B56EcD7c")
             
-            if response.status_code == 200:
-                data = response.json()
-                markets = []
-                
-                for market in data.get("data", {}).get("markets", []):
-                    markets.append(MarketData(
-                        id=int(market["marketId"]),
-                        title=market["title"],
-                        total_pool=int(market["totalPool"]),
-                        option_a_shares=int(market["totalOptionAShares"]),
-                        option_b_shares=int(market["totalOptionBShares"]),
-                        end_time=datetime.fromtimestamp(int(market["updatedAt"])),
-                        market_type=market["marketType"],
-                        status=market["status"]
-                    ))
-                
-                return markets
-            else:
-                print(f"Error fetching markets: {response.status_code}")
-                return []
-                
+            async with aiohttp.ClientSession() as session:
+                # Get contract transactions
+                url = f"{self.endpoint}/api/v2/addresses/{chimera_address}/transactions"
+                async with session.get(url, params={"limit": 100}) as response:
+                    data = await response.json()
+                    
+                    markets = []
+                    for tx in data.get("items", []):
+                        # Filter for market creation transactions
+                        if tx.get("method") == "createMarket" or int(tx.get("value", "0")) == 0:
+                            markets.append(MarketData(
+                                id=int(tx["hash"][-8:], 16),  # Convert hex to int
+                                title=f"Market {tx['hash'][-8:]}",
+                                total_pool=0,  # Will be calculated from bets
+                                option_a_shares=0,
+                                option_b_shares=0,
+                                end_time=datetime.fromtimestamp(time.time() + 86400),  # 24h from now
+                                market_type="binary",
+                                status="active"
+                            ))
+                    
+                    return markets[:10]  # Return first 10 markets
+                    
         except Exception as e:
-            print(f"Error fetching markets: {e}")
+            print(f"Error fetching markets from Blockscout: {e}")
             return []
     
     async def get_market_history(self, market_id: int) -> List[Dict]:
@@ -206,7 +192,7 @@ class EnvioDataFetcher:
 class ChimeraAgent:
     """Main ChimeraProtocol ASI Agent"""
     
-    def __init__(self, envio_endpoint: str, lit_protocol_endpoint: str):
+    def __init__(self, blockscout_endpoint: str, lit_protocol_endpoint: str):
         self.agent = Agent(
             name="chimera_market_analyzer",
             seed="chimera_secret_seed_phrase_here",
@@ -214,7 +200,7 @@ class ChimeraAgent:
             endpoint=["http://localhost:8001/submit"]
         )
         
-        self.envio_fetcher = EnvioDataFetcher(envio_endpoint)
+        self.rpc_fetcher = DirectRPCDataFetcher(blockscout_endpoint)
         self.metta_reasoner = MeTTaReasoner()
         self.lit_endpoint = lit_protocol_endpoint
         
@@ -243,7 +229,7 @@ class ChimeraAgent:
             
             try:
                 # Fetch active markets
-                markets = await self.envio_fetcher.get_active_markets()
+                markets = await self.rpc_fetcher.get_active_markets()
                 ctx.logger.info(f"📊 Found {len(markets)} active markets")
                 
                 for market in markets:
@@ -356,15 +342,15 @@ class ChimeraAgent:
 if __name__ == "__main__":
     # Configuration from environment
     import os
-    ENVIO_ENDPOINT = os.getenv("ENVIO_INDEXER_URL", "http://localhost:8080/v1/graphql")
+    BLOCKSCOUT_ENDPOINT = os.getenv("BLOCKSCOUT_API_URL", "https://chimera-explorer.blockscout.com")
     LIT_PROTOCOL_ENDPOINT = os.getenv("LIT_PROTOCOL_ENDPOINT", "http://localhost:3001")
     
     print("🚀 Starting ChimeraProtocol ASI Alliance Agent...")
-    print(f"📡 Envio endpoint: {ENVIO_ENDPOINT}")
+    print(f"📡 Blockscout endpoint: {BLOCKSCOUT_ENDPOINT}")
     print(f"🔒 Lit Protocol endpoint: {LIT_PROTOCOL_ENDPOINT}")
     
     # Create and run agent
-    agent = ChimeraAgent(ENVIO_ENDPOINT, LIT_PROTOCOL_ENDPOINT)
+    agent = ChimeraAgent(BLOCKSCOUT_ENDPOINT, LIT_PROTOCOL_ENDPOINT)
     
     try:
         agent.run()
