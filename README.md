@@ -1,6 +1,6 @@
 # ChimeraAI 🔮
 
-An AI-powered prediction market platform on Hedera EVM with autonomous agents, Pyth Oracle integration, and PYUSD betting. Features ASI Alliance reasoning agents and Lit Protocol secure execution for intelligent, automated trading strategies.
+An AI-powered prediction market platform on Hedera EVM with autonomous agents, Pyth Oracle integration, and PYUSD betting. Features ASI Alliance reasoning agents for intelligent, automated trading strategies.
 
 ## 🎯 Deployed Contracts (Hedera Testnet)
 
@@ -19,10 +19,10 @@ ChimeraAI combines cutting-edge AI agents with decentralized prediction markets 
 | Sponsor | Integration | Prize Track |
 |---------|-------------|-------------|
 | **ASI Alliance** | MeTTa reasoning agents for market analysis | AI Agent Integration |
-| **Lit Protocol** | Vincent Skill for secure execution | Programmable Key Pairs |
+
 | **Direct RPC** | Direct contract calls for real-time data | Data Infrastructure |
 | **Pyth Network** | Oracle price feeds for price markets | Oracle Integration |
-| **Blockscout** | On-chain analytics and monitoring | Blockchain Analytics |
+
 
 ## 🚀 New Frontend Integrations
 
@@ -31,7 +31,7 @@ The frontend now includes comprehensive integrations with all system components:
 ### 📊 System Dashboard
 - Real-time monitoring of all ecosystem components
 - ASI Agent performance metrics
-- Lit Protocol security status
+- System security status
 - Bridge statistics and health monitoring
 - Live price feeds from Pyth Network
 
@@ -49,7 +49,7 @@ The frontend now includes comprehensive integrations with all system components:
 - Transfer history and analytics
 
 ### 🔐 Enhanced Security
-- Lit Protocol Vincent Skill integration
+- Direct contract execution
 - Secure transaction validation
 - Audit trail and execution history
 - Emergency stop mechanisms
@@ -67,7 +67,7 @@ graph TB
 
     subgraph "AI Layer"
         ASI[ASI Alliance Agent]
-        LIT[Lit Protocol Vincent]
+
     end
 
     subgraph "Data Layer"
@@ -106,23 +106,22 @@ graph TB
     RPC --> CP
     ETH --> CP
 ```
-| **ASI Alliance** | MeTTa reasoning with Envio data analysis | 🚀 Best use of Artificial Superintelligence Alliance |
-| **Lit Protocol** | Hedera Agent Kit + Vincent Skills for secure execution | 🎨 Best Hedera x Lit Protocol Vincent Skill |
+| **ASI Alliance** | MeTTa reasoning with direct contract analysis | 🚀 Best use of Artificial Superintelligence Alliance |
 | **Hedera** | EVM contracts + Agent Kit integration | EVM Innovator Track + Best Use of Hedera Agent Kit |
 | **Pyth Network** | Pull Oracle for market resolution | ⛓️ Most Innovative use of Pyth pull oracle |
 | **PayPal USD** | Wrapped PYUSD as betting currency | 🥇 Grand Prize / 🎖️ PYUSD Consumer Champion |
-| **Blockscout** | Autoscout Explorer + SDK integration | 🚀 Best use of Autoscout |
+
 
 ## 🏗️ Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   ASI Alliance  │    │  Lit Protocol   │    │     Hedera      │
-│   (Reasoning)   │────│  (Execution)    │────│   (Blockchain)  │
-│                 │    │                 │    │                 │
-│ • MeTTa Logic   │    │ • Vincent Skill │    │ • EVM Contracts │
-│ • Market Analysis│    │ • Secure Actions│    │ • Agent Kit     │
-│ • Strategy AI   │    │ • Delegation    │    │ • Low Fees      │
+│   ASI Alliance  │    │     Hedera      │
+│   (Reasoning)   │────│   (Blockchain)  │
+│                 │    │                 │
+│ • MeTTa Logic   │    │ • EVM Contracts │
+│ • Market Analysis│    │ • Agent Kit     │
+│ • Strategy AI   │    │ • Low Fees      │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -173,15 +172,13 @@ cp .env.example .env
 
 ## 🧪 Headless Run (No Demo UI)
 
-Run Lit Vincent Skill and ASI Agent locally without any UI.
+Run ASI Agent locally without any UI.
 
 ```powershell
-# 1) Start Vincent Skill
-npm run start:vincent-skill
+# Start ASI Agent with HTTP Server (Windows PowerShell)
+npm run start:asi-http
 
-# 2) Start ASI Agent (Windows PowerShell)
-$env:BLOCKSCOUT_API_URL = "https://chimera-explorer.blockscout.com"  # Autoscout URL
-$env:LIT_PROTOCOL_ENDPOINT = "http://localhost:3001"                  # Vincent Skill URL
+# Or start ASI Agent in mailbox mode
 npm run start:asi-headless
 ```
 
@@ -189,13 +186,7 @@ Notes:
 - Hyperon MeTTa is optional; if not installed, the agent falls back to heuristic logic.
 - Agentverse/ASI:One registration is not required for headless mode.
 
-### Vincent Ability Headless Test
-Trigger the Vincent Skill `execute_action` endpoint without UI.
 
-```powershell
-$env:LIT_PROTOCOL_ENDPOINT = "http://localhost:3001"
-npm run lit:execute -- place_bet 1 0 25
-```
 
 ## 📡 Direct RPC Integration
 
@@ -239,9 +230,7 @@ npm run dev
 cd agents/asi-agent
 python market_analyzer.py
 
-# Lit Protocol Skill
-cd agents/lit-protocol
-node chimera-vincent-skill.js
+
 
 # Direct RPC calls (no additional setup needed)
 # Uses HEDERA_RPC_URL from .env
@@ -260,17 +249,18 @@ node chimera-vincent-skill.js
 
 ### 2. ASI Alliance Agent
 
-**market_analyzer.py** - Intelligent market analysis agent:
-- Fetches data via direct RPC calls
-- Uses MeTTa reasoning for strategy decisions
+**market_analyzer.py** - Enhanced intelligent market analysis agent:
+- **Mailbox Agent**: Agentverse integration for remote communication
+- **Chat Protocol**: Natural language interaction support
+- **MeTTa Reasoning**: Advanced logic-based market analysis
+- **Rate Limiting**: Prevents spam and ensures fair usage
+- **OpenAI Integration**: Intelligent query processing and market filtering
+- **Multi-Protocol Support**: Structured queries and chat messages
+- **Direct RPC**: Real-time market data from Hedera contracts
 - Implements contrarian betting strategies
-- Sends execution signals to Lit Protocol
+- Executes trades directly via RPC
 
-### 3. Lit Protocol Vincent Skill
 
-**chimera-vincent-skill.js** - Secure execution layer:
-- Validates agent delegations
-- Executes bets on behalf of users
 - Enforces spending limits and permissions
 - Provides audit trail for all actions
 
@@ -308,9 +298,7 @@ Modern web interface for:
 - **Data Sources:** Direct RPC calls + external sentiment
 - **Strategies:** Contrarian betting, volume analysis, trend following
 
-### Lit Protocol Security
-- **Delegation System:** Users authorize agents with spending limits
-- **Secure Execution:** All agent actions validated and logged
+
 - **Permission Management:** Granular control over agent capabilities
 
 ## 🔗 Network Information
@@ -347,7 +335,7 @@ npm run debug:frontend      # Debug contract integration
 
 # Agents
 cd agents/asi-agent && python market_analyzer.py    # Start ASI agent
-cd agents/lit-protocol && node chimera-vincent-skill.js # Start Lit skill
+
 ```
 
 ### Testing
@@ -420,7 +408,7 @@ await chimeraContract.placeBet(marketId, option, betAmount);
 - ✅ **Oracle Integration:** Pyth Network price feeds
 - ✅ **Stable Currency:** PYUSD betting with bridge system
 - ✅ **Low Fees:** Hedera EVM efficiency
-- ✅ **Full Transparency:** Blockscout explorer integration
+- ✅ **Full Transparency:** On-chain verification via HashScan
 
 ## 📞 Support
 

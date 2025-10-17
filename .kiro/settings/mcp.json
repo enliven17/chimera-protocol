@@ -1,25 +1,3 @@
 {
-  "mcpServers": {
-    "blockscout": {
-      "command": "npx",
-      "args": [
-        "@blockscout/mcp-server"
-      ],
-      "env": {
-        "BLOCKSCOUT_API_URL": "https://eth.blockscout.com/api/v2",
-        "BLOCKSCOUT_GRAPHQL_URL": "https://eth.blockscout.com/api/v1/graphql",
-        "CHIMERA_CONTRACT_ADDRESS": "0x7Bee0AB565e6aB33009647174Eb8cd55B56EcD7c",
-        "PYUSD_CONTRACT_ADDRESS": "0x9D5F12DBe903A0741F675e4Aa4454b2F7A010aB4",
-        "PYTH_CONTRACT_ADDRESS": "0xa2aa501b19aff244d90cc15a4cf739d2725b5729"
-      },
-      "disabled": false,
-      "autoApprove": [
-        "get_address_info",
-        "get_transaction_details",
-        "get_contract_info",
-        "get_token_transfers",
-        "search_transactions"
-      ]
-    }
-  }
+  "mcpServers": {}
 }

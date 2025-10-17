@@ -128,7 +128,7 @@ async function testFullIntegration() {
     }
 
     // Test 7: Event Emission ✅
-    console.log("\n7️⃣ Testing event emission for Envio...");
+    console.log("\n7️⃣ Testing event emission for monitoring...");
     console.log("✅ Events emitted during tests:");
     console.log("  - MarketCreated");
     console.log("  - AgentDelegationUpdated");
@@ -153,12 +153,11 @@ async function testFullIntegration() {
     console.log("✅ Agent delegation system");
     console.log("✅ Market creation & betting");
     console.log("✅ Hardhat 3 configuration");
-    console.log("✅ Event emission for Envio");
+    console.log("✅ Event emission for monitoring");
     console.log("✅ Security features");
-    console.log("🔄 Envio HyperIndex (configured)");
+    console.log("🔄 Direct RPC integration (configured)");
     console.log("🔄 ASI Alliance uAgent (ready)");
-    console.log("🔄 Lit Protocol Vincent Skill (ready)");
-    console.log("🔄 Blockscout integration (configured)");
+    console.log("🔄 HashScan integration (configured)");
 
     console.log("\n🏆 Project is 95%+ compliant with eth.md specifications!");
 

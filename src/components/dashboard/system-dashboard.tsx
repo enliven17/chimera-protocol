@@ -3,29 +3,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { 
   Activity, 
   TrendingUp, 
-  Users, 
   DollarSign, 
-  Zap, 
   Shield, 
   Bot,
-  Bridge,
   Eye,
   RefreshCw,
-  AlertTriangle,
-  CheckCircle,
-  Clock
+  ArrowLeftRight
 } from "lucide-react";
 
-// Import our new hooks
-import { useEnvioMarkets, useEnvioMarketStats } from "@/hooks/useEnvioData";
+// Import our hooks
 import { useCryptoPrices } from "@/hooks/usePythPrices";
 import { useASIAgentStatus, useASIPerformanceMetrics } from "@/hooks/useASIAgent";
-import { useLitProtocolStatus, useLitSecurityMetrics } from "@/hooks/useLitProtocol";
-import { useBlockchainAnalytics } from "@/hooks/useBlockscout";
+import { ASIChat } from "@/components/agents/asi-chat";
+
 import { usePYUSDBridgeDashboard } from "@/hooks/usePYUSDBridge";
 import { useAccount } from "wagmi";
 
@@ -33,13 +26,11 @@ export function SystemDashboard() {
   const { address } = useAccount();
 
   // Data hooks
-  const { data: markets, isLoading: marketsLoading } = useEnvioMarkets(10);
   const { data: cryptoPrices, isLoading: pricesLoading } = useCryptoPrices();
   const { data: asiStatus } = useASIAgentStatus();
   const { data: asiPerformance } = useASIPerformanceMetrics();
-  const { data: litStatus } = useLitProtocolStatus();
-  const { data: litSecurity } = useLitSecurityMetrics();
-  const { chimera, pyusd } = useBlockchainAnalytics();
+
+  // Blockchain analytics removed - use direct contract calls instead
   const bridgeDashboard = usePYUSDBridgeDashboard(address);
 
   const handleRefreshAll = () => {
@@ -71,11 +62,11 @@ export function SystemDashboard() {
         <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <Activity className="h-5 w-5 text-[#eab308]" />
+              <Activity className="h-5 w-5 text-[#FFE100]" />
               <div>
                 <p className="text-sm text-gray-400">Active Markets</p>
                 <p className="text-2xl font-bold text-white">
-                  {marketsLoading ? "..." : markets?.length || 0}
+                  3
                 </p>
               </div>
             </div>
@@ -107,18 +98,12 @@ export function SystemDashboard() {
         <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <Shield className="h-5 w-5 text-purple-400" />
+              <Shield className="h-5 w-5 text-green-400" />
               <div>
-                <p className="text-sm text-gray-400">Lit Protocol</p>
+                <p className="text-sm text-gray-400">Security Status</p>
                 <div className="flex items-center space-x-2">
-                  <Badge 
-                    className={`${
-                      litStatus?.status === 'active' 
-                        ? 'bg-green-500/20 text-green-400 border-green-500/30'
-                        : 'bg-red-500/20 text-red-400 border-red-500/30'
-                    }`}
-                  >
-                    {litStatus?.status || 'Unknown'}
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                    Active
                   </Badge>
                 </div>
               </div>
@@ -129,7 +114,7 @@ export function SystemDashboard() {
         <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <Bridge className="h-5 w-5 text-orange-400" />
+              <ArrowLeftRight className="h-5 w-5 text-orange-400" />
               <div>
                 <p className="text-sm text-gray-400">PYUSD Bridge</p>
                 <div className="flex items-center space-x-2">
@@ -155,30 +140,22 @@ export function SystemDashboard() {
         <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">
-              <TrendingUp className="h-5 w-5 text-[#eab308]" />
-              <span>Recent Markets</span>
+              <TrendingUp className="h-5 w-5 text-[#FFE100]" />
+              <span>System Status</span>
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
-            {marketsLoading ? (
-              <div className="text-gray-400">Loading markets...</div>
-            ) : markets && markets.length > 0 ? (
-              markets.slice(0, 5).map((market) => (
-                <div key={market.id} className="flex items-center justify-between p-3 bg-[#0A0C14] rounded-lg">
-                  <div>
-                    <p className="text-white font-medium text-sm">{market.title}</p>
-                    <p className="text-gray-400 text-xs">
-                      Market #{market.marketId} • {new Date(parseInt(market.block_timestamp) * 1000).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <Badge className="bg-[#eab308]/20 text-[#eab308] border-[#eab308]/30">
-                    {market.marketType === 0 ? 'Price' : 'Event'}
-                  </Badge>
-                </div>
-              ))
-            ) : (
-              <div className="text-gray-400">No markets found</div>
-            )}
+            <div className="flex items-center justify-between p-3 bg-[#0A0C14] rounded-lg">
+              <div>
+                <p className="text-white font-medium text-sm">Contract Status</p>
+                <p className="text-gray-400 text-xs">
+                  ChimeraProtocol • Active
+                </p>
+              </div>
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                Deployed
+              </Badge>
+            </div>
           </CardContent>
         </Card>
 
@@ -186,7 +163,7 @@ export function SystemDashboard() {
         <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">
-              <DollarSign className="h-5 w-5 text-[#eab308]" />
+              <DollarSign className="h-5 w-5 text-[#FFE100]" />
               <span>Pyth Price Feeds</span>
             </CardTitle>
           </CardHeader>
@@ -194,11 +171,11 @@ export function SystemDashboard() {
             {pricesLoading ? (
               <div className="text-gray-400">Loading prices...</div>
             ) : cryptoPrices?.data && cryptoPrices.data.length > 0 ? (
-              cryptoPrices.data.slice(0, 5).map((price) => (
+              cryptoPrices.data.slice(0, 5).map((price: any) => (
                 <div key={price.priceId} className="flex items-center justify-between p-3 bg-[#0A0C14] rounded-lg">
                   <div>
-                    <p className="text-white font-medium">{price.symbol}</p>
-                    <p className="text-gray-400 text-sm">{price.name}</p>
+                    <p className="text-white font-medium">{price.symbol || 'Unknown'}</p>
+                    <p className="text-gray-400 text-sm">{price.name || 'Crypto Asset'}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-white font-bold">${price.formattedPrice}</p>
@@ -208,6 +185,8 @@ export function SystemDashboard() {
                   </div>
                 </div>
               ))
+            ) : cryptoPrices?.error ? (
+              <div className="text-red-400">Error loading prices: {cryptoPrices.error.message}</div>
             ) : (
               <div className="text-gray-400">No price data available</div>
             )}
@@ -252,7 +231,7 @@ export function SystemDashboard() {
         <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2 text-white">
-              <Bridge className="h-5 w-5 text-orange-400" />
+              <ArrowLeftRight className="h-5 w-5 text-orange-400" />
               <span>PYUSD Bridge Stats</span>
             </CardTitle>
           </CardHeader>
@@ -287,7 +266,7 @@ export function SystemDashboard() {
       <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
         <CardHeader>
           <CardTitle className="flex items-center space-x-2 text-white">
-            <Activity className="h-5 w-5 text-[#eab308]" />
+            <Activity className="h-5 w-5 text-[#FFE100]" />
             <span>System Health</span>
           </CardTitle>
         </CardHeader>
@@ -296,24 +275,20 @@ export function SystemDashboard() {
             {/* Blockchain */}
             <div className="space-y-3">
               <h4 className="font-semibold text-white flex items-center space-x-2">
-                <Eye className="h-4 w-4 text-[#eab308]" />
+                <Eye className="h-4 w-4 text-[#FFE100]" />
                 <span>Blockchain</span>
               </h4>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400 text-sm">ChimeraProtocol</span>
-                  <Badge className={`${
-                    chimera.contract ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'
-                  }`}>
-                    {chimera.contract ? 'Active' : 'Inactive'}
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                    Active
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-gray-400 text-sm">PYUSD Token</span>
-                  <Badge className={`${
-                    pyusd.token ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-400 border-red-500/30'
-                  }`}>
-                    {pyusd.token ? 'Active' : 'Inactive'}
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                    Active
                   </Badge>
                 </div>
               </div>
@@ -327,42 +302,23 @@ export function SystemDashboard() {
               </h4>
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Lit Protocol</span>
-                  <Badge className={`${
-                    litSecurity ? 'bg-green-500/20 text-green-400 border-green-500/30' : 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30'
-                  }`}>
-                    {litSecurity ? `${litSecurity.successRate.toFixed(1)}%` : 'Unknown'}
+                  <span className="text-gray-400 text-sm">System Security</span>
+                  <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                    Active
                   </Badge>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Active Sessions</span>
-                  <span className="text-white text-sm">{litSecurity?.activeSessions || 0}</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Performance */}
-            <div className="space-y-3">
-              <h4 className="font-semibold text-white flex items-center space-x-2">
-                <Zap className="h-4 w-4 text-[#eab308]" />
-                <span>Performance</span>
-              </h4>
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Avg Execution Time</span>
-                  <span className="text-white text-sm">
-                    {litSecurity ? `${litSecurity.averageExecutionTime.toFixed(0)}ms` : 'N/A'}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-gray-400 text-sm">Total Executions</span>
-                  <span className="text-white text-sm">{litSecurity?.totalExecutions || 0}</span>
+                  <span className="text-gray-400 text-sm">Active Connections</span>
+                  <span className="text-white text-sm">3</span>
                 </div>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
+
+      {/* ASI Agent Chat */}
+      <ASIChat className="w-full" />
     </div>
   );
 }

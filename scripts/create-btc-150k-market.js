@@ -100,7 +100,7 @@ async function createBTCMarket() {
 
       console.log(`\n🌐 View Market:`);
       console.log(`   Frontend: http://localhost:3000/markets/${marketId}`);
-      console.log(`   Blockscout: https://hashscan.io/testnet/transaction/${tx.hash}`);
+      console.log(`   HashScan: https://hashscan.io/testnet/transaction/${tx.hash}`);
 
       console.log(`\n📈 Market Features:`);
       console.log(`   ✅ Real-time BTC price tracking via Pyth Oracle`);

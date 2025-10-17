@@ -12,10 +12,7 @@ export const copyToClipboard = async (text: string): Promise<void> => {
   await navigator.clipboard.writeText(text);
 };
 
-export const getBlockscoutUrl = (address: string): string => {
-  const baseUrl = 'https://hashscan.io/testnet';
-  return `${baseUrl}/address/${address}`;
-};
+
 
 export const getAvatarFallback = (address: string): string => {
   return address.slice(2, 4).toUpperCase();

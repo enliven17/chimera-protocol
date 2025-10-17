@@ -74,17 +74,17 @@ export default function HomePage() {
                                 asChild
                                 size="lg"
                                 style={{
-                                    backgroundColor: "#eab308",
-                                    color: "white",
+                                    backgroundColor: "#FFE100",
+                                    color: "black",
                                     fontSize: "16px",
                                     height: "fit-content",
                                     padding: "12px 32px",
                                 }}
                                 onMouseEnter={(e) => {
-                                    e.currentTarget.style.backgroundColor = "#ca8a04";
+                                    e.currentTarget.style.backgroundColor = "#E6CC00";
                                 }}
                                 onMouseLeave={(e) => {
-                                    e.currentTarget.style.backgroundColor = "#eab308";
+                                    e.currentTarget.style.backgroundColor = "#FFE100";
                                 }}
                             >
                                 <Link href="/markets">
@@ -94,7 +94,7 @@ export default function HomePage() {
                             </Button>
 
                             <button
-                                className="border border-[#eab308] text-[#eab308] hover:bg-[#eab308] hover:text-white px-8 py-3 rounded-lg font-semibold transition-all duration-200 max-sm:w-[60%]"
+                                className="border border-[#FFE100] text-[#FFE100] hover:bg-[#FFE100] hover:text-black px-8 py-3 rounded-lg font-semibold transition-all duration-200 max-sm:w-[60%]"
                                 onClick={() =>
                                     window.scrollTo({
                                         top: window.innerHeight,
@@ -109,9 +109,9 @@ export default function HomePage() {
                 </div>
 
                 {/* Animated Background Elements */}
-                <div className="absolute top-10 left-10 w-20 h-20 bg-[#eab308]/10 rounded-full blur-xl animate-pulse"></div>
-                <div className="absolute bottom-10 right-10 w-32 h-32 bg-[#ca8a04]/10 rounded-full blur-xl animate-pulse delay-1000"></div>
-                <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-[#eab308]/5 rounded-full blur-lg animate-bounce delay-500"></div>
+                <div className="absolute top-10 left-10 w-20 h-20 bg-[#FFE100]/10 rounded-full blur-xl animate-pulse"></div>
+                <div className="absolute bottom-10 right-10 w-32 h-32 bg-[#E6CC00]/10 rounded-full blur-xl animate-pulse delay-1000"></div>
+                <div className="absolute top-1/2 left-1/4 w-16 h-16 bg-[#FFE100]/5 rounded-full blur-lg animate-bounce delay-500"></div>
 
                 {/* Bottom Gradient Fade */}
                 <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-[#0A0C14] to-transparent"></div>
@@ -124,10 +124,10 @@ export default function HomePage() {
                         {/* Total Markets */}
                         <div className="bg-[#1A1F2C] rounded-xl p-6 shadow-lg border border-gray-800/60 hover:border-[#eab308]/30 transition-colors">
                             <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-[#eab308]/15">
-                                    <BarChart3 className="h-5 w-5 text-[#eab308]" />
+                                <div className="p-2 rounded-lg bg-[#FFE100]/15">
+                                    <BarChart3 className="h-5 w-5 text-[#FFE100]" />
                                 </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20">live</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FFE100]/10 text-[#FFE100] border border-[#FFE100]/20">live</span>
                             </div>
                             <div className="text-3xl font-bold text-white">
                                 <CountUp end={platformStats.totalMarkets} />
@@ -138,10 +138,10 @@ export default function HomePage() {
                         {/* Active Now */}
                         <div className="bg-[#1A1F2C] rounded-xl p-6 shadow-lg border border-gray-800/60 hover:border-[#eab308]/30 transition-colors">
                             <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-[#eab308]/15">
-                                    <Activity className="h-5 w-5 text-[#eab308]" />
+                                <div className="p-2 rounded-lg bg-[#FFE100]/15">
+                                    <Activity className="h-5 w-5 text-[#FFE100]" />
                                 </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20">now</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FFE100]/10 text-[#FFE100] border border-[#FFE100]/20">now</span>
                             </div>
                             <div className="text-3xl font-bold text-white">
                                 <CountUp end={platformStats.activeMarkets} />
@@ -152,12 +152,12 @@ export default function HomePage() {
                         {/* PYUSD Volume */}
                         <div className="bg-[#1A1F2C] rounded-xl p-6 shadow-lg border border-gray-800/60 hover:border-[#eab308]/30 transition-colors">
                             <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-[#eab308]/15">
-                                    <Coins className="h-5 w-5 text-[#eab308]" />
+                                <div className="p-2 rounded-lg bg-[#FFE100]/15">
+                                    <Coins className="h-5 w-5 text-[#FFE100]" />
                                 </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20">PYUSD</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FFE100]/10 text-[#FFE100] border border-[#FFE100]/20">PYUSD</span>
                             </div>
-                            <div className="text-3xl font-bold text-[#eab308]">
+                            <div className="text-3xl font-bold text-[#FFE100]">
                                 {formatCompactCurrency(platformStats.totalVolume)}
                             </div>
                             <div className="text-sm text-gray-400 mt-1">Total Volume</div>
@@ -166,10 +166,10 @@ export default function HomePage() {
                         {/* Trades */}
                         <div className="bg-[#1A1F2C] rounded-xl p-6 shadow-lg border border-gray-800/60 hover:border-[#eab308]/30 transition-colors">
                             <div className="flex items-start justify-between mb-4">
-                                <div className="p-2 rounded-lg bg-[#eab308]/15">
-                                    <Users className="h-5 w-5 text-[#eab308]" />
+                                <div className="p-2 rounded-lg bg-[#FFE100]/15">
+                                    <Users className="h-5 w-5 text-[#FFE100]" />
                                 </div>
-                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#eab308]/10 text-[#eab308] border border-[#eab308]/20">all-time</span>
+                                <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FFE100]/10 text-[#FFE100] border border-[#FFE100]/20">all-time</span>
                             </div>
                             <div className="text-3xl font-bold text-white">
                                 <CountUp end={platformStats.totalUsers} suffix="+" />
@@ -196,17 +196,17 @@ export default function HomePage() {
                             asChild
                             variant="outline"
                             style={{
-                                borderColor: "#eab308",
-                                color: "#eab308",
+                                borderColor: "#FFE100",
+                                color: "#FFE100",
                                 backgroundColor: "transparent",
                             }}
                             onMouseEnter={(e) => {
-                                e.currentTarget.style.backgroundColor = "#eab308";
-                                e.currentTarget.style.color = "white";
+                                e.currentTarget.style.backgroundColor = "#FFE100";
+                                e.currentTarget.style.color = "black";
                             }}
                             onMouseLeave={(e) => {
                                 e.currentTarget.style.backgroundColor = "transparent";
-                                e.currentTarget.style.color = "#eab308";
+                                e.currentTarget.style.color = "#FFE100";
                             }}
                         >
                             <Link href="/markets">View All Markets</Link>
@@ -236,7 +236,7 @@ export default function HomePage() {
                             <Button
                                 onClick={() => window.location.reload()}
                                 variant="outline"
-                                className="mt-4 border-[#eab308] text-[#eab308] hover:bg-[#eab308] hover:text-white"
+                                className="mt-4 border-[#FFE100] text-[#FFE100] hover:bg-[#FFE100] hover:text-black"
                             >
                                 Retry
                             </Button>

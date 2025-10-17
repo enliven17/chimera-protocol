@@ -17,10 +17,10 @@ agents/*/.env
 agents/*/logs/
 agents/*/temp/
 docs
-envio-docs
+
 # testing
 /coverage
-
+polybets-monorepo-main
 # next.js
 /.next/
 /out/

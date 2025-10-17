@@ -70,7 +70,7 @@ export default function MarketDetailPage() {
     fetchMarket();
   }, [marketId]);
 
-  const trades: any[] = []; // Would come from Blockscout or events
+  const trades: any[] = []; // Would come from contract events
   const comments: any[] = []; // Comments would come from a separate system
   const userPosition = null; // Would need wallet connection
 

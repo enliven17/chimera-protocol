@@ -24,7 +24,7 @@ import {
 
 // Import our AI hooks
 import { useASIMarketIntelligence, useASIBettingRecommendation } from "@/hooks/useASIAgent";
-import { useEnvioMarketStats, calculateMarketOdds } from "@/hooks/useEnvioData";
+
 import { usePythPrice, usePriceConditionCheck } from "@/hooks/usePythPrices";
 
 interface MarketIntelligenceProps {
@@ -54,8 +54,17 @@ export function MarketIntelligence({
 }: MarketIntelligenceProps) {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Get market statistics from Envio
-  const marketStats = useEnvioMarketStats(marketId);
+  // Mock market statistics (replace with direct contract calls)
+  const marketStats = {
+    totalBets: 0,
+    totalVolume: '0',
+    optionAVolume: '0',
+    optionBVolume: '0',
+    uniqueBettors: 0,
+    averageBetSize: '0',
+    lastBetTime: null,
+    isLoading: false
+  };
   
   // Get AI intelligence
   const intelligence = useASIMarketIntelligence(marketData, true);
@@ -78,7 +87,7 @@ export function MarketIntelligence({
     setRefreshKey(prev => prev + 1);
     intelligence.refetch();
     recommendation.refetch();
-    marketStats.refetch();
+    // marketStats is now static, no refetch needed
   };
 
   const getRiskColor = (level: string) => {

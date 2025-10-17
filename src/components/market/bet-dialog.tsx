@@ -34,14 +34,59 @@ export const BetDialog: React.FC<BetDialogProps> = ({
   const [betAmount, setBetAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const { address } = useAccount();
-  const { useBalance, hasAllowance, approveChimera } = usePYUSD();
+  const { address, isConnected, chain } = useAccount();
+  const { 
+    useBalance, 
+    useChimeraAllowance, 
+    useTokenInfo,
+    hasAllowance, 
+    approveChimera, 
+    formatBalance: formatPYUSDBalance,
+    isPending: isApprovePending,
+    isConfirming: isApproveConfirming 
+  } = usePYUSD();
   const { data: balance } = useBalance(address);
+  const { data: allowance } = useChimeraAllowance(address);
   const { placeBet, isPending, isConfirming, isConfirmed, hash, useMarket } = useChimeraProtocol();
   const { data: market } = useMarket(parseInt(marketId));
 
   const selectedOption = selectedSide === 'optionA' ? optionA : optionB;
   const optionIndex = selectedSide === 'optionA' ? 0 : 1;
+
+  // Handle successful transactions
+  useEffect(() => {
+    if (isConfirmed && hash) {
+      toast.success('Bet placed successfully!');
+      setBetAmount('');
+      onSuccess?.();
+      onOpenChange(false);
+    }
+  }, [isConfirmed, hash, onSuccess, onOpenChange]);
+
+  // Check if user has enough balance
+  const hasEnoughBalance = balance && betAmount ? 
+    parseFloat(formatPYUSDBalance(balance)) >= parseFloat(betAmount) : false;
+
+  // Check if user has enough allowance
+  const hasEnoughAllowance = allowance && betAmount ? 
+    hasAllowance(allowance, betAmount) : false;
+
+  const needsApproval = betAmount && parseFloat(betAmount) > 0 && !hasEnoughAllowance;
+
+  const handleApprove = async () => {
+    if (!betAmount) return;
+    
+    try {
+      setIsSubmitting(true);
+      await approveChimera(betAmount);
+      toast.success('Approval transaction submitted! Please wait for confirmation.');
+    } catch (error: any) {
+      console.error('Approval failed:', error);
+      toast.error('Approval failed: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,13 +101,57 @@ export const BetDialog: React.FC<BetDialogProps> = ({
       return;
     }
 
+    if (!hasEnoughBalance) {
+      toast.error('Insufficient PYUSD balance');
+      return;
+    }
+
+    if (needsApproval) {
+      toast.error('Please approve PYUSD spending first');
+      return;
+    }
+
     try {
       setIsSubmitting(true);
+      
+      console.log('🔗 Wallet Status:', {
+        address,
+        isConnected,
+        chainId: chain?.id,
+        chainName: chain?.name
+      });
+      
+      console.log('🎯 Placing bet:', { marketId, optionIndex, betAmount, address });
+      
+      if (!isConnected) {
+        throw new Error('Wallet not connected');
+      }
+      
+      if (chain?.id !== 296) {
+        throw new Error(`Wrong network. Expected Hedera Testnet (296), got ${chain?.id}`);
+      }
+      
       await placeBet(parseInt(marketId), optionIndex, betAmount);
-      setBetAmount('');
-      toast.success('Bet placed successfully!');
+      
+      console.log('✅ Bet transaction submitted successfully');
+      toast.success('Bet transaction submitted! Please wait for confirmation.');
     } catch (error: any) {
-      console.error('Bet failed:', error);
+      console.error('❌ Bet failed:', error);
+      
+      // More detailed error handling
+      let errorMessage = 'Unknown error';
+      if (error.message) {
+        errorMessage = error.message;
+      } else if (error.reason) {
+        errorMessage = error.reason;
+      } else if (error.code) {
+        errorMessage = `Error code: ${error.code}`;
+      }
+      
+      toast.error('Bet failed: ' + errorMessage);
+      
+      // Log full error for debugging
+      console.log('Full error object:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -70,7 +159,7 @@ export const BetDialog: React.FC<BetDialogProps> = ({
 
   const formatBalance = (balance: bigint | undefined) => {
     if (!balance) return '0';
-    return (Number(balance) / 1e6).toFixed(4);
+    return formatPYUSDBalance(balance);
   };
 
   const isValidAmount = betAmount && parseFloat(betAmount) > 0;
@@ -123,32 +212,87 @@ export const BetDialog: React.FC<BetDialogProps> = ({
                 <span>Available Balance:</span>
                 <span>{formatBalance(balance)} PYUSD</span>
               </div>
+              
+              {/* Status info */}
+              {betAmount && parseFloat(betAmount) > 0 && (
+                <div className="text-xs text-gray-400 mt-1 space-y-1">
+                  <div>Balance: {balance ? formatPYUSDBalance(balance) : 'Loading...'} wPYUSD</div>
+                  <div>Status: {hasEnoughBalance ? '✅ Sufficient balance' : '❌ Insufficient balance'}</div>
+                  {hasEnoughBalance && (
+                    <div>Approval: {needsApproval ? '⏳ Required' : '✅ Ready'}</div>
+                  )}
+                </div>
+              )}
+
+              {/* Balance and Allowance Status */}
+              {betAmount && parseFloat(betAmount) > 0 && (
+                <div className="space-y-1">
+                  {!hasEnoughBalance && (
+                    <div className="flex items-center space-x-2 text-red-400 text-xs">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>Insufficient balance</span>
+                    </div>
+                  )}
+                  {hasEnoughBalance && needsApproval && (
+                    <div className="flex items-center space-x-2 text-yellow-400 text-xs">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>Approval required</span>
+                    </div>
+                  )}
+                  {hasEnoughBalance && !needsApproval && (
+                    <div className="flex items-center space-x-2 text-green-400 text-xs">
+                      <CheckCircle className="h-3 w-3" />
+                      <span>Ready to bet</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
+            {/* Action Buttons */}
             <div className="flex space-x-3 pt-2">
               <Button
                 type="button"
                 variant="outline"
                 onClick={() => onOpenChange(false)}
                 className="flex-1 bg-gray-800/30 border-gray-700 text-gray-300 hover:bg-gray-700/50 hover:text-white"
-                disabled={isSubmitting || isPending}
+                disabled={isSubmitting || isPending || isApprovePending}
               >
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                className="flex-1 bg-gradient-to-r from-[#eab308] to-[#ca8a04] hover:from-[#ca8a04] hover:to-[#a16207] text-white shadow-lg"
-                disabled={!isValidAmount || isSubmitting || isPending || !address}
-              >
-                {isSubmitting || isPending ? (
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Placing Bet...</span>
-                  </div>
-                ) : (
-                  `Place Bet (${betAmount || '0'} PYUSD)`
-                )}
-              </Button>
+
+              {needsApproval ? (
+                <Button
+                  type="button"
+                  onClick={handleApprove}
+                  className="flex-1 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg"
+                  disabled={!isValidAmount || isSubmitting || isApprovePending || !address || !hasEnoughBalance}
+                >
+                  {isSubmitting || isApprovePending || isApproveConfirming ? (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Approving...</span>
+                    </div>
+                  ) : (
+                    `Approve ${betAmount || '0'} PYUSD`
+                  )}
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  className="flex-1 bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black shadow-lg font-semibold"
+                  disabled={!isValidAmount || isSubmitting || isPending || !address || !hasEnoughBalance || needsApproval}
+                >
+                  {isSubmitting || isPending || isConfirming ? (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Placing Bet...</span>
+                    </div>
+                  ) : (
+                    `Place Bet (${betAmount || '0'} PYUSD)`
+                  )}
+                </Button>
+              )}
             </div>
           </form>
         </div>

@@ -12,7 +12,7 @@ import {
   TrendingUp,
   Filter
 } from "lucide-react";
-import { useEnvioMarkets } from "@/hooks/useEnvioData";
+
 
 interface SearchSuggestion {
   id: string;
@@ -42,8 +42,9 @@ export function SearchBar() {
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Get real market data from Envio
-  const { data: markets, isLoading } = useEnvioMarkets(100);
+  // Mock market data (replace with direct contract calls)
+  const markets: any[] = [];
+  const isLoading = false;
 
   // Load recent searches from localStorage on mount
   useEffect(() => {

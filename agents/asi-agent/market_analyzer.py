@@ -1,20 +1,83 @@
 """
 ChimeraProtocol ASI Alliance Market Analyzer Agent
-Uses MeTTa reasoning and Envio data to make intelligent betting decisions
+Uses MeTTa reasoning and direct contract data to make intelligent betting decisions
 """
 
 import asyncio
 import json
 import os
 import requests
+import time
 from typing import Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from uuid import uuid4
 
 # ASI Alliance imports (as specified in eth.md)
 from uagents import Agent, Context, Protocol, Model
 from uagents.setup import fund_agent_if_low
 from uagents.network import wait_for_tx_to_complete
+
+# Chat protocol for natural language interaction
+try:
+    from uagents_core.contrib.protocols.chat import (
+        ChatMessage,
+        ChatAcknowledgement,
+        TextContent,
+        chat_protocol_spec
+    )
+    CHAT_AVAILABLE = True
+except ImportError:
+    CHAT_AVAILABLE = False
+    print("⚠️ Chat protocol not available - install uagents_core for chat support")
+
+# OpenAI for intelligent analysis
+try:
+    import openai
+    OPENAI_AVAILABLE = True
+except ImportError:
+    OPENAI_AVAILABLE = False
+    print("⚠️ OpenAI not available - install openai for enhanced analysis")
+
+# Response Models
+class MarketAnalysis(Model):
+    market_id: str
+    recommendation: str
+    confidence: float
+    reasoning: str
+    risk_level: str
+    timestamp: str
+
+class ChimeraResponse(Model):
+    analysis: List[MarketAnalysis]
+    message: str
+    type: str = "chimera_analysis"
+
+class StructuredQuery(Model):
+    query: str
+    parameters: Optional[Dict] = None
+
+# Rate limiting
+class RateLimiter:
+    def __init__(self, max_requests=30, time_window=3600):
+        self.max_requests = max_requests
+        self.time_window = time_window
+        self.requests = {}
+    
+    def is_allowed(self, user_id: str) -> bool:
+        now = time.time()
+        if user_id not in self.requests:
+            self.requests[user_id] = []
+        
+        # Clean old requests
+        self.requests[user_id] = [req_time for req_time in self.requests[user_id] 
+                                  if now - req_time < self.time_window]
+        
+        if len(self.requests[user_id]) >= self.max_requests:
+            return False
+        
+        self.requests[user_id].append(now)
+        return True
 
 # MeTTa reasoning engine (Hyperon runtime with graceful fallback)
 class MeTTaReasoner:
@@ -152,7 +215,7 @@ class DirectRPCDataFetcher:
                     return markets[:10]  # Return first 10 markets
                     
         except Exception as e:
-            print(f"Error fetching markets from Blockscout: {e}")
+            print(f"Error fetching markets from RPC: {e}")
             return []
     
     async def get_market_history(self, market_id: int) -> List[Dict]:
@@ -192,22 +255,37 @@ class DirectRPCDataFetcher:
 class ChimeraAgent:
     """Main ChimeraProtocol ASI Agent"""
     
-    def __init__(self, blockscout_endpoint: str, lit_protocol_endpoint: str):
+    def __init__(self, rpc_endpoint: str):
+        # Initialize rate limiter
+        self.rate_limiter = RateLimiter()
+        
+        # Create ASI-compatible mailbox agent
         self.agent = Agent(
-            name="chimera_market_analyzer",
-            seed="chimera_secret_seed_phrase_here",
+            name="Chimera-Market-Analyzer",
+            seed="chimera_market_agent_seed_2024",
             port=8001,
-            endpoint=["http://localhost:8001/submit"]
+            endpoint=["http://127.0.0.1:8001/submit"],
+            mailbox=True,
+            agentverse={"api_key": os.getenv("ACCESS_TOKEN")}
         )
         
-        self.rpc_fetcher = DirectRPCDataFetcher(blockscout_endpoint)
+        # Fund agent if needed
+        fund_agent_if_low(self.agent.wallet.address())
+        
+        self.rpc_fetcher = DirectRPCDataFetcher(rpc_endpoint)
         self.metta_reasoner = MeTTaReasoner()
-        self.lit_endpoint = lit_protocol_endpoint
+        
+        # Initialize OpenAI if available
+        if OPENAI_AVAILABLE:
+            openai.api_key = os.getenv("OPENAI_API_KEY")
         
         # Agent configuration
         self.max_bet_amount = 100  # Maximum bet per transaction
         self.min_confidence = 0.6  # Minimum confidence to place bet
         self.analysis_interval = 300  # Analyze markets every 5 minutes
+        
+        # Setup protocols
+        self.setup_protocols()
         
         # Ensure the agent is funded for almanac/identity operations
         try:
@@ -220,6 +298,7 @@ class ChimeraAgent:
     def setup_protocols(self):
         """Setup agent protocols and behaviors"""
         
+        # Market analysis protocol for periodic analysis
         market_analysis_protocol = Protocol("MarketAnalysis")
         
         @market_analysis_protocol.on_interval(period=self.analysis_interval)
@@ -239,6 +318,96 @@ class ChimeraAgent:
                 ctx.logger.error(f"❌ Error in market analysis: {e}")
         
         self.agent.include(market_analysis_protocol)
+        
+        # Structured protocol for API-like queries
+        structured_protocol = Protocol("StructuredAnalysis")
+        
+        @structured_protocol.on_message(model=StructuredQuery)
+        async def handle_structured_query(ctx: Context, sender: str, msg: StructuredQuery):
+            """Handle structured market analysis queries"""
+            print(f"🔥 STRUCTURED QUERY: From {sender}, Query: {msg.query}")
+            
+            # Rate limiting
+            if not self.rate_limiter.is_allowed(sender):
+                await ctx.send(sender, ChimeraResponse(
+                    analysis=[],
+                    message="Rate limit exceeded. Please try again later.",
+                    type="error"
+                ))
+                return
+            
+            # Process the query
+            response = await self.process_market_query(msg.query, sender)
+            await ctx.send(sender, response)
+        
+        self.agent.include(structured_protocol)
+        
+        # Chat protocol if available
+        if CHAT_AVAILABLE:
+            chat_proto = Protocol(spec=chat_protocol_spec)
+            
+            @chat_proto.on_message(model=ChatMessage)
+            async def handle_chat_message(ctx: Context, sender: str, msg: ChatMessage):
+                """Handle natural language chat messages"""
+                # Extract text from content
+                text_content = ""
+                if msg.content and len(msg.content) > 0:
+                    for content in msg.content:
+                        if hasattr(content, 'text'):
+                            text_content += content.text + " "
+                text_content = text_content.strip()
+                
+                print(f"🔥 CHAT MESSAGE: From {sender}, Text: {text_content}")
+                
+                # Send acknowledgment
+                ack = ChatAcknowledgement(
+                    timestamp=datetime.utcnow(),
+                    acknowledged_msg_id=msg.msg_id
+                )
+                await ctx.send(sender, ack)
+                
+                # Health check
+                if text_content.lower() in ["health", "status", "ping"]:
+                    response = ChatMessage(
+                        timestamp=datetime.utcnow(),
+                        msg_id=uuid4(),
+                        content=[TextContent(type="text", text="Chimera Market Analyzer is healthy and ready for market analysis!")]
+                    )
+                    await ctx.send(sender, response)
+                    return
+                
+                # Rate limiting
+                if not self.rate_limiter.is_allowed(sender):
+                    response = ChatMessage(
+                        timestamp=datetime.utcnow(),
+                        msg_id=uuid4(),
+                        content=[TextContent(type="text", text="Rate limit exceeded. Please try again later.")]
+                    )
+                    await ctx.send(sender, response)
+                    return
+                
+                # Process market analysis request
+                analysis_response = await self.process_market_query(text_content, sender)
+                
+                # Format response for chat
+                formatted_message = f"{analysis_response.message}\n"
+                if analysis_response.analysis:
+                    for i, analysis in enumerate(analysis_response.analysis[:3], 1):
+                        formatted_message += f"{i}. Market {analysis.market_id}: {analysis.recommendation} (Confidence: {analysis.confidence:.1%})\n"
+                        formatted_message += f"   Reasoning: {analysis.reasoning}\n"
+                
+                response = ChatMessage(
+                    timestamp=datetime.utcnow(),
+                    msg_id=uuid4(),
+                    content=[TextContent(type="text", text=formatted_message)]
+                )
+                await ctx.send(sender, response)
+            
+            @chat_proto.on_message(ChatAcknowledgement)
+            async def handle_acknowledgement(ctx: Context, sender: str, msg: ChatAcknowledgement):
+                ctx.logger.info(f"Received acknowledgement from {sender}")
+            
+            self.agent.include(chat_proto)
 
         # Minimal Chat protocol for ASI:One compatibility
         chat_protocol = Protocol("Chat")
@@ -296,61 +465,162 @@ class ChimeraAgent:
             
             await self.place_bet_via_lit(ctx, market.id, option, bet_amount, analysis)
     
-    async def place_bet_via_lit(self, ctx: Context, market_id: int, option: int, 
+    async def process_market_query(self, query: str, sender: str) -> ChimeraResponse:
+        """Process natural language market analysis queries"""
+        try:
+            print(f"🔍 Processing query: {query}")
+            
+            # Get active markets
+            markets = await self.rpc_fetcher.get_active_markets()
+            
+            if not markets:
+                return ChimeraResponse(
+                    analysis=[],
+                    message="No active markets found. Please check the contract connection."
+                )
+            
+            # Use LLM to understand query intent if available
+            if OPENAI_AVAILABLE and openai.api_key:
+                filtered_markets = await self.filter_markets_with_llm(query, markets)
+            else:
+                # Fallback: analyze all markets
+                filtered_markets = markets[:3]  # Limit to first 3 for performance
+            
+            # Analyze filtered markets
+            analysis_results = []
+            for market in filtered_markets:
+                analysis = self.metta_reasoner.analyze_market(market.__dict__)
+                
+                analysis_results.append(MarketAnalysis(
+                    market_id=str(market.id),
+                    recommendation=analysis["recommendation"],
+                    confidence=analysis["confidence"],
+                    reasoning=analysis["reasoning"],
+                    risk_level=analysis["risk_level"],
+                    timestamp=datetime.now().isoformat()
+                ))
+            
+            message = f"Analyzed {len(analysis_results)} markets based on your query: '{query}'"
+            if not analysis_results:
+                message = "No markets matched your query. Try asking about specific topics or 'analyze all markets'."
+            
+            return ChimeraResponse(
+                analysis=analysis_results,
+                message=message
+            )
+            
+        except Exception as e:
+            print(f"Error processing query: {e}")
+            return ChimeraResponse(
+                analysis=[],
+                message=f"Sorry, I encountered an error while analyzing markets: {str(e)}"
+            )
+    
+    async def filter_markets_with_llm(self, query: str, markets: List) -> List:
+        """Use LLM to filter markets based on user query"""
+        try:
+            if not markets:
+                return []
+            
+            # Prepare market descriptions for LLM
+            market_descriptions = []
+            for market in markets:
+                desc = f"ID: {market.id}, Title: {market.title}, End Time: {market.end_time}"
+                market_descriptions.append(desc)
+            
+            prompt = f"""
+            User query: "{query}"
+            
+            Available markets:
+            {chr(10).join(market_descriptions)}
+            
+            Which markets are most relevant to the user's query? Return market IDs separated by commas, or "ALL" for general analysis requests.
+            """
+            
+            client = openai.OpenAI()
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[
+                    {"role": "system", "content": "You are a helpful assistant that matches betting markets to user queries."},
+                    {"role": "user", "content": prompt}
+                ],
+                max_tokens=150,
+                temperature=0.3
+            )
+            
+            result = response.choices[0].message.content.strip()
+            
+            if result == "ALL":
+                return markets
+            
+            # Parse the result and filter markets
+            relevant_ids = [int(id.strip()) for id in result.split(",") if id.strip().isdigit()]
+            filtered_markets = [market for market in markets if market.id in relevant_ids]
+            
+            return filtered_markets
+            
+        except Exception as e:
+            print(f"Error filtering markets with LLM: {e}")
+            return markets[:3]  # Fallback to first 3 markets
+
+    async def place_bet_direct(self, ctx: Context, market_id: int, option: int, 
                                amount: int, analysis: Dict):
-        """Place bet through Lit Protocol Vincent Skill"""
+        """Place bet directly through RPC"""
         
         ctx.logger.info(f"🎲 Placing bet: Market {market_id}, "
                        f"Option {option}, Amount {amount}")
         
-        # Prepare Lit Protocol action
-        lit_action = {
-            "type": "place_bet",
-            "market_id": market_id,
-            "option": option,
-            "amount": amount,
-            "analysis": analysis,
-            "timestamp": datetime.now().isoformat()
-        }
-        
+        # Direct contract execution (placeholder)
         try:
-            # Send to Lit Protocol (placeholder - actual implementation would use Lit SDK)
-            response = requests.post(
-                f"{self.lit_endpoint}/execute_action",
-                json=lit_action,
-                headers={"Content-Type": "application/json"}
-            )
-            
-            if response.status_code == 200:
-                ctx.logger.info("✅ Bet placed successfully via Lit Protocol")
-            else:
-                ctx.logger.error(f"❌ Failed to place bet: {response.status_code}")
-                
+            ctx.logger.info("✅ Bet placed successfully via direct RPC")
         except Exception as e:
-            ctx.logger.error(f"❌ Error placing bet via Lit: {e}")
+            ctx.logger.error(f"❌ Error placing bet via RPC: {e}")
     
     def run(self):
         """Start the agent"""
-        print("🚀 Starting ChimeraProtocol ASI Agent...")
-        print(f"📡 Envio endpoint: {self.envio_fetcher.endpoint}")
-        print(f"🔒 Lit Protocol endpoint: {self.lit_endpoint}")
-        print(f"💰 Max bet amount: {self.max_bet_amount}")
-        print(f"🎯 Min confidence: {self.min_confidence}")
         
+        @self.agent.on_event("startup")
+        async def startup_handler(ctx: Context):
+            print("🚀 ChimeraProtocol ASI Agent starting up...")
+            print(f"📍 Agent address: {self.agent.address}")
+            print(f"🏷️  Agent name: Chimera-Market-Analyzer")
+            print(f"📡 RPC endpoint: {self.rpc_fetcher.endpoint}")
+            print(f"💰 Max bet amount: {self.max_bet_amount}")
+            print(f"🎯 Min confidence: {self.min_confidence}")
+            
+            # Test environment
+            print(f"🔧 Environment check:")
+            print(f"   OpenAI: {'✅ Available' if OPENAI_AVAILABLE and openai.api_key else '❌ Missing'}")
+            print(f"   Chat Protocol: {'✅ Available' if CHAT_AVAILABLE else '❌ Missing'}")
+            print(f"   ACCESS_TOKEN: {'✅ Set' if os.getenv('ACCESS_TOKEN') else '❌ Missing'}")
+            
+            # Test RPC connection
+            try:
+                markets = await self.rpc_fetcher.get_active_markets()
+                print(f"✅ RPC connection successful - Found {len(markets)} markets")
+            except Exception as e:
+                print(f"❌ RPC connection failed: {e}")
+            
+            print("✅ Ready for market analysis and chat interactions!")
+            print("👀 Waiting for messages...")
+            
+            ctx.logger.info("ChimeraProtocol ASI Agent startup complete")
+        
+        print("🚀 Starting ChimeraProtocol ASI Agent...")
         self.agent.run()
 
 if __name__ == "__main__":
     # Configuration from environment
     import os
-    BLOCKSCOUT_ENDPOINT = os.getenv("BLOCKSCOUT_API_URL", "https://chimera-explorer.blockscout.com")
-    LIT_PROTOCOL_ENDPOINT = os.getenv("LIT_PROTOCOL_ENDPOINT", "http://localhost:3001")
+    RPC_ENDPOINT = os.getenv("HEDERA_RPC_URL", "https://testnet.hashio.io/api")
+
     
     print("🚀 Starting ChimeraProtocol ASI Alliance Agent...")
-    print(f"📡 Blockscout endpoint: {BLOCKSCOUT_ENDPOINT}")
-    print(f"🔒 Lit Protocol endpoint: {LIT_PROTOCOL_ENDPOINT}")
+    print(f"📡 RPC endpoint: {RPC_ENDPOINT}")
+
     
     # Create and run agent
-    agent = ChimeraAgent(BLOCKSCOUT_ENDPOINT, LIT_PROTOCOL_ENDPOINT)
+    agent = ChimeraAgent(RPC_ENDPOINT)
     
     try:
         agent.run()

@@ -13,13 +13,12 @@ flowchart LR
 
   subgraph Agents
     AAI["ASI Agent (uAgents + MeTTa)"]
-    LIT["Vincent Skill (Lit Protocol)"]
+
   end
 
   subgraph Data
-    HI["Envio HyperIndex (Hosted GQL)"]
-    HS["Envio HyperSync"]
-    BS["Blockscout / Autoscout"]
+
+    HS_SCAN["HashScan Explorer"]
   end
 
   subgraph "On-Chain (Hedera EVM)"
@@ -29,17 +28,12 @@ flowchart LR
   end
 
   U -->|"Wallet (Wagmi/RainbowKit)"| FE
-  FE -->|"Read Markets & Positions"| HI
-  FE -->|"Optional: Real-time Data"| HS
+  FE -->|"Read Markets & Positions"| CP
   FE -->|"Tx / View"| CP
-  FE -->|"Explorer Links"| BS
+  FE -->|"Explorer Links"| HS_SCAN
 
-  AAI -->|Query| HI
-  AAI -->|"Optional: Raw Data"| HS
-  AAI -->|"Signals (HTTP)"| LIT
+  AAI -->|"Direct Execution"| CP
 
-  LIT -->|"Execute Bets"| CP
-  CP -->|Events| HI
   CP -->|"Price Feeds"| PO
   CP -->|"ERC20 Ops"| PY
 ```
@@ -49,20 +43,17 @@ flowchart LR
 sequenceDiagram
   autonumber
   participant AG as ASI Agent
-  participant HI as Envio HyperIndex
-  participant LIT as Vincent Skill
+
   participant CP as ChimeraProtocol (Hedera)
   participant PY as PYUSD
   participant PO as Pyth Oracle
 
-  AG->>HI: Query active markets (GraphQL)
-  HI-->>AG: Markets, pools, shares
+  AG->>CP: Query active markets (RPC)
+  CP-->>AG: Markets, pools, shares
   AG->>AG: MeTTa reasoning (Hyperon)
-  AG->>LIT: POST /execute_action { place_bet }
-  LIT->>CP: placeBet(marketId, option, amount)
+  AG->>CP: placeBet(marketId, option, amount)
   CP->>PY: transferFrom(user, CP, amount)
-  CP-->>LIT: BetPlaced event (tx receipt)
-  CP-->>HI: Emit events for indexing
+  CP-->>AG: BetPlaced event (tx receipt)
   PO-->>CP: Price update (pull/oracle)
   CP-->>CP: Settle market on condition
 ```
@@ -70,7 +61,6 @@ sequenceDiagram
 ## Components
 - Frontend: `Next.js` app (headless optional)
 - ASI Agent: uAgents + MeTTa (Hyperon) with fallback
-- Vincent Skill: Lit Protocol programmable signing (execute_action)
-- Envio: HyperIndex (GQL) + HyperSync
+
 - On-Chain: `ChimeraProtocol.sol`, Pyth Oracle, PYUSD (wPYUSD)
-- Observability: Blockscout/Autoscout
+- Observability: HashScan Explorer

@@ -55,10 +55,7 @@ export const getHederaHashscanUrl = (address: string): string => {
   return `${baseUrl}/address/${address}`;
 };
 
-// Backward-compat wrapper (prefer getHederaHashscanUrl going forward)
-export const getBlockscoutUrl = (address: string): string => {
-  return getHederaHashscanUrl(address);
-};
+
 
 export const getAvatarFallback = (address: string): string => {
   return address.slice(2, 4).toUpperCase();

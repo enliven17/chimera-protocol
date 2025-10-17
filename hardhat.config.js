@@ -33,21 +33,7 @@ export default {
       url: "http://127.0.0.1:8545",
     },
   },
-  etherscan: {
-    apiKey: {
-      chimera: 'empty'
-    },
-    customChains: [
-      {
-        network: "chimera",
-        chainId: 296,
-        urls: {
-          apiURL: "https://chimera.cloud.blockscout.com/api",
-          browserURL: "https://chimera.cloud.blockscout.com"
-        }
-      }
-    ]
-  },
+
   paths: {
     sources: "./contracts",
     tests: "./test",

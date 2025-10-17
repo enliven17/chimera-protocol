@@ -1,55 +1,183 @@
+import React from "react";
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import { toast } from "sonner";
 
-// ERC20 ABI for PYUSD token
+// ERC20 ABI for PYUSD token (JSON format)
 const ERC20_ABI = [
-  "function name() view returns (string)",
-  "function symbol() view returns (string)",
-  "function decimals() view returns (uint8)",
-  "function totalSupply() view returns (uint256)",
-  "function balanceOf(address owner) view returns (uint256)",
-  "function allowance(address owner, address spender) view returns (uint256)",
-  "function transfer(address to, uint256 amount) returns (bool)",
-  "function approve(address spender, uint256 amount) returns (bool)",
-  "function transferFrom(address from, address to, uint256 amount) returns (bool)",
-  
-  "event Transfer(address indexed from, address indexed to, uint256 value)",
-  "event Approval(address indexed owner, address indexed spender, uint256 value)",
+  {
+    "inputs": [],
+    "name": "name",
+    "outputs": [{"name": "", "type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "symbol", 
+    "outputs": [{"name": "", "type": "string"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "decimals",
+    "outputs": [{"name": "", "type": "uint8"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "owner", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"name": "owner", "type": "address"},
+      {"name": "spender", "type": "address"}
+    ],
+    "name": "allowance",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"name": "spender", "type": "address"},
+      {"name": "amount", "type": "uint256"}
+    ],
+    "name": "approve",
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"name": "to", "type": "address"},
+      {"name": "amount", "type": "uint256"}
+    ],
+    "name": "transfer",
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ] as const;
 
 const PYUSD_ADDRESS = process.env.NEXT_PUBLIC_PYUSD_CONTRACT_ADDRESS as `0x${string}`;
 const CHIMERA_ADDRESS = process.env.NEXT_PUBLIC_CHIMERA_CONTRACT_ADDRESS as `0x${string}`;
 
+// Validate contract addresses
+if (!PYUSD_ADDRESS || !CHIMERA_ADDRESS) {
+  console.error('Missing contract addresses:', { PYUSD_ADDRESS, CHIMERA_ADDRESS });
+}
+
 export function usePYUSD() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContract, writeContractAsync, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
 
   // Read functions
   const useBalance = (address: `0x${string}` | undefined) => {
-    return useReadContract({
+    // Try wagmi first
+    const wagmiResult = useReadContract({
       address: PYUSD_ADDRESS,
       abi: ERC20_ABI,
       functionName: "balanceOf",
       args: address ? [address] : undefined,
       query: {
-        enabled: !!address,
+        enabled: !!address && !!PYUSD_ADDRESS,
       },
     });
+
+    // If wagmi fails, use manual fetch
+    const [manualBalance, setManualBalance] = React.useState<bigint | undefined>();
+    const [isManualLoading, setIsManualLoading] = React.useState(false);
+
+    React.useEffect(() => {
+      if (!address || !PYUSD_ADDRESS || wagmiResult.data !== undefined) return;
+
+      const fetchBalance = async () => {
+        try {
+          setIsManualLoading(true);
+          const response = await fetch('/api/pyusd-balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setManualBalance(BigInt(data.balance));
+          }
+        } catch (error) {
+          console.error('Manual balance fetch failed:', error);
+        } finally {
+          setIsManualLoading(false);
+        }
+      };
+
+      fetchBalance();
+    }, [address, PYUSD_ADDRESS, wagmiResult.data]);
+
+    // Return wagmi result if available, otherwise manual result
+    return {
+      ...wagmiResult,
+      data: wagmiResult.data ?? manualBalance,
+      isLoading: wagmiResult.isLoading || isManualLoading,
+    };
   };
 
   const useAllowance = (owner: `0x${string}` | undefined, spender: `0x${string}`) => {
-    return useReadContract({
+    // Try wagmi first
+    const wagmiResult = useReadContract({
       address: PYUSD_ADDRESS,
       abi: ERC20_ABI,
       functionName: "allowance",
       args: owner ? [owner, spender] : undefined,
       query: {
-        enabled: !!owner,
+        enabled: !!owner && !!PYUSD_ADDRESS && !!spender,
       },
     });
+
+    // If wagmi fails, use manual fetch
+    const [manualAllowance, setManualAllowance] = React.useState<bigint | undefined>();
+    const [isManualLoading, setIsManualLoading] = React.useState(false);
+
+    React.useEffect(() => {
+      if (!owner || !spender || !PYUSD_ADDRESS || wagmiResult.data !== undefined) return;
+
+      const fetchAllowance = async () => {
+        try {
+          setIsManualLoading(true);
+          const response = await fetch('/api/pyusd-balance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: owner, spender })
+          });
+          
+          if (response.ok) {
+            const data = await response.json();
+            setManualAllowance(BigInt(data.allowance));
+          }
+        } catch (error) {
+          console.error('Manual allowance fetch failed:', error);
+        } finally {
+          setIsManualLoading(false);
+        }
+      };
+
+      fetchAllowance();
+    }, [owner, spender, PYUSD_ADDRESS, wagmiResult.data]);
+
+    // Return wagmi result if available, otherwise manual result
+    return {
+      ...wagmiResult,
+      data: wagmiResult.data ?? manualAllowance,
+      isLoading: wagmiResult.isLoading || isManualLoading,
+    };
   };
 
   const useChimeraAllowance = (owner: `0x${string}` | undefined) => {
@@ -61,25 +189,48 @@ export function usePYUSD() {
       address: PYUSD_ADDRESS,
       abi: ERC20_ABI,
       functionName: "name",
+      query: {
+        enabled: !!PYUSD_ADDRESS,
+      },
     });
 
     const symbol = useReadContract({
       address: PYUSD_ADDRESS,
       abi: ERC20_ABI,
       functionName: "symbol",
+      query: {
+        enabled: !!PYUSD_ADDRESS,
+      },
     });
 
     const decimals = useReadContract({
       address: PYUSD_ADDRESS,
       abi: ERC20_ABI,
       functionName: "decimals",
+      query: {
+        enabled: !!PYUSD_ADDRESS,
+      },
     });
 
     const totalSupply = useReadContract({
       address: PYUSD_ADDRESS,
       abi: ERC20_ABI,
       functionName: "totalSupply",
+      query: {
+        enabled: !!PYUSD_ADDRESS,
+      },
     });
+
+    // Debug logging
+    if (typeof window !== 'undefined') {
+      console.log('PYUSD Token Info Debug:', {
+        PYUSD_ADDRESS,
+        name: { data: name.data, error: name.error, status: name.status },
+        symbol: { data: symbol.data, error: symbol.error, status: symbol.status },
+        decimals: { data: decimals.data, error: decimals.error, status: decimals.status },
+        totalSupply: { data: totalSupply.data, error: totalSupply.error, status: totalSupply.status }
+      });
+    }
 
     return {
       name: name.data,
@@ -87,6 +238,7 @@ export function usePYUSD() {
       decimals: decimals.data,
       totalSupply: totalSupply.data,
       isLoading: name.isLoading || symbol.isLoading || decimals.isLoading || totalSupply.isLoading,
+      error: name.error || symbol.error || decimals.error || totalSupply.error,
     };
   };
 
@@ -95,17 +247,23 @@ export function usePYUSD() {
     try {
       const amountWei = parseUnits(amount, 6); // PYUSD has 6 decimals
 
-      await writeContract({
+      console.log('📝 Approving PYUSD:', { spender, amount, amountWei: amountWei.toString() });
+
+      const txHash = await writeContractAsync({
         address: PYUSD_ADDRESS,
         abi: ERC20_ABI,
         functionName: "approve",
         args: [spender, amountWei],
       });
 
-      toast.success("Approval transaction submitted!");
+      console.log('✅ Approval transaction hash:', txHash);
+      toast.success(`Approval transaction submitted! Hash: ${txHash}`);
+      
+      return txHash;
     } catch (error) {
-      console.error("Error approving:", error);
-      toast.error("Failed to approve");
+      console.error("❌ Error approving:", error);
+      toast.error("Failed to approve: " + (error.message || 'Unknown error'));
+      throw error;
     }
   };
 

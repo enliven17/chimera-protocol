@@ -1,45 +1,110 @@
+import React from "react";
 import { useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { parseUnits, formatUnits } from "viem";
 import { toast } from "sonner";
 
-// ChimeraProtocol ABI (simplified for key functions)
+// ChimeraProtocol ABI (JSON format for better compatibility)
 const CHIMERA_ABI = [
   // Read functions
-  "function getMarket(uint256 marketId) view returns (tuple(uint256 id, string title, string description, string optionA, string optionB, uint8 category, address creator, uint256 createdAt, uint256 endTime, uint256 minBet, uint256 maxBet, uint8 status, uint8 outcome, bool resolved, uint256 totalOptionAShares, uint256 totalOptionBShares, uint256 totalPool, string imageUrl, uint8 marketType, bytes32 pythPriceId, int64 targetPrice, bool priceAbove))",
-  "function getAllMarkets() view returns (tuple[])",
-  "function getActiveMarkets() view returns (tuple[])",
-  "function getUserPosition(address user, uint256 marketId) view returns (tuple(uint256 optionAShares, uint256 optionBShares, uint256 totalInvested))",
-  "function isAgentDelegated(address user, address agent) view returns (bool)",
-  "function getAgentMaxBet(address agent) view returns (uint256)",
-  "function marketCounter() view returns (uint256)",
-  "function pyusdToken() view returns (address)",
-  "function pyth() view returns (address)",
-  
-  // Write functions
-  "function createMarket(string title, string description, string optionA, string optionB, uint8 category, uint256 endTime, uint256 minBet, uint256 maxBet, string imageUrl, uint8 marketType, bytes32 pythPriceId, int64 targetPrice, bool priceAbove) returns (uint256)",
-  "function placeBet(uint256 marketId, uint8 option, uint256 amount)",
-  "function placeBetForUser(uint256 marketId, uint8 option, uint256 amount, address user)",
-  "function delegateToAgent(address agent, uint256 maxBetAmount)",
-  "function revokeDelegation(address agent)",
-  "function updateAgentMaxBet(address agent, uint256 maxBetAmount)",
-  "function claimWinnings(uint256 marketId)",
-  "function resolveMarket(uint256 marketId, uint8 outcome)",
-  "function resolvePriceMarket(uint256 marketId, bytes[] priceUpdateData) payable",
-  
-  // Events
-  "event MarketCreated(uint256 indexed marketId, string title, address indexed creator, uint8 marketType)",
-  "event BetPlaced(uint256 indexed marketId, address indexed user, address indexed agent, uint8 option, uint256 amount, uint256 shares)",
-  "event MarketResolved(uint256 indexed marketId, uint8 outcome, address indexed resolver, int64 finalPrice)",
-  "event AgentDelegationUpdated(address indexed user, address indexed agent, bool approved, uint256 maxBetAmount)",
+  {
+    "inputs": [{"name": "marketId", "type": "uint256"}],
+    "name": "getMarket",
+    "outputs": [
+      {
+        "components": [
+          {"name": "id", "type": "uint256"},
+          {"name": "title", "type": "string"},
+          {"name": "description", "type": "string"},
+          {"name": "optionA", "type": "string"},
+          {"name": "optionB", "type": "string"},
+          {"name": "category", "type": "uint8"},
+          {"name": "creator", "type": "address"},
+          {"name": "createdAt", "type": "uint256"},
+          {"name": "endTime", "type": "uint256"},
+          {"name": "minBet", "type": "uint256"},
+          {"name": "maxBet", "type": "uint256"},
+          {"name": "status", "type": "uint8"},
+          {"name": "outcome", "type": "uint8"},
+          {"name": "resolved", "type": "bool"},
+          {"name": "totalOptionAShares", "type": "uint256"},
+          {"name": "totalOptionBShares", "type": "uint256"},
+          {"name": "totalPool", "type": "uint256"},
+          {"name": "imageUrl", "type": "string"},
+          {"name": "marketType", "type": "uint8"},
+          {"name": "pythPriceId", "type": "bytes32"},
+          {"name": "targetPrice", "type": "int64"},
+          {"name": "priceAbove", "type": "bool"}
+        ],
+        "name": "",
+        "type": "tuple"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
+    "name": "marketCounter",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"name": "marketId", "type": "uint256"},
+      {"name": "option", "type": "uint8"},
+      {"name": "amount", "type": "uint256"}
+    ],
+    "name": "placeBet",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [
+      {"name": "agent", "type": "address"},
+      {"name": "maxBetAmount", "type": "uint256"}
+    ],
+    "name": "delegateToAgent",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "agent", "type": "address"}],
+    "name": "revokeDelegation",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "marketId", "type": "uint256"}],
+    "name": "claimWinnings",
+    "outputs": [],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  }
 ] as const;
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_CHIMERA_CONTRACT_ADDRESS as `0x${string}`;
 
 export function useChimeraProtocol() {
-  const { writeContract, data: hash, isPending, error } = useWriteContract();
+  const { writeContract, writeContractAsync, data: hash, isPending, error } = useWriteContract();
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
     hash,
   });
+
+  // Debug wallet connection
+  React.useEffect(() => {
+    console.log('🔗 ChimeraProtocol Hook State:', {
+      hash,
+      isPending,
+      isConfirming,
+      isConfirmed,
+      error: error?.message,
+      CONTRACT_ADDRESS
+    });
+  }, [hash, isPending, isConfirming, isConfirmed, error]);
 
   // Read functions
   const useMarket = (marketId: number) => {
@@ -167,19 +232,42 @@ export function useChimeraProtocol() {
 
   const placeBet = async (marketId: number, option: number, amount: string) => {
     try {
+      console.log('🎯 placeBet called with:', { marketId, option, amount });
+      
+      if (!CONTRACT_ADDRESS) {
+        throw new Error('Contract address not configured');
+      }
+      
       const amountWei = parseUnits(amount, 6); // PYUSD has 6 decimals
+      console.log('💰 Amount in wei:', amountWei.toString());
 
-      await writeContract({
+      console.log('📝 Calling writeContractAsync with:', {
+        address: CONTRACT_ADDRESS,
+        functionName: "placeBet",
+        args: [BigInt(marketId), option, amountWei],
+      });
+
+      const txHash = await writeContractAsync({
         address: CONTRACT_ADDRESS,
         abi: CHIMERA_ABI,
         functionName: "placeBet",
         args: [BigInt(marketId), option, amountWei],
       });
 
-      toast.success("Bet placement transaction submitted!");
+      console.log('✅ Transaction hash:', txHash);
+      toast.success(`Bet placement transaction submitted! Hash: ${txHash}`);
+      
+      return txHash;
     } catch (error) {
-      console.error("Error placing bet:", error);
-      toast.error("Failed to place bet");
+      console.error("❌ Error placing bet:", error);
+      console.log('Error details:', {
+        message: error.message,
+        code: error.code,
+        reason: error.reason,
+        stack: error.stack
+      });
+      toast.error("Failed to place bet: " + (error.message || 'Unknown error'));
+      throw error; // Re-throw so caller can handle
     }
   };
 
