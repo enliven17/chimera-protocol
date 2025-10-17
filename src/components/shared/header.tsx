@@ -32,6 +32,12 @@ export function Header() {
                   Markets
                 </Link>
                 <Link 
+                  href="/bridge" 
+                  className="text-gray-300 hover:text-[#FFE100] transition-colors text-sm font-medium"
+                >
+                  Bridge
+                </Link>
+                <Link 
                   href="/dashboard" 
                   className="text-gray-300 hover:text-white transition-colors text-sm font-medium"
                 >

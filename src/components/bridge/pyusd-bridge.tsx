@@ -6,509 +6,342 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
 import { 
-  Bridge, 
   ArrowRightLeft, 
-  Clock, 
-  DollarSign, 
   AlertTriangle, 
   CheckCircle,
-  RefreshCw,
   ExternalLink,
-  TrendingUp,
-  Activity,
-  Shield
+  Loader2,
+  ArrowDown
 } from "lucide-react";
 
-import { 
-  usePYUSDBridgeDashboard,
-  usePYUSDInitiateBridgeTransfer,
-  usePYUSDInitiateReverseBridgeTransfer,
-  usePYUSDValidateTransfer,
-  usePYUSDTransferTimeEstimate,
-  usePYUSDRealTimeTransfers,
-  calculateBridgeFee,
-  formatTransferStatus
-} from "@/hooks/usePYUSDBridge";
-import { useAccount } from "wagmi";
+import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { toast } from "sonner";
+import { parseUnits, formatUnits } from "viem";
+
+// Mock PYUSD contract address for Sepolia (for demo)
+const SEPOLIA_PYUSD_ADDRESS = "0x9D5F12DBe903A0741F675e4Aa4454b2F7A010aB4"; // Using our Hedera address as mock
+const BRIDGE_CONTRACT_ADDRESS = "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87"; // Mock bridge contract
+
+// ERC20 ABI for PYUSD operations
+const ERC20_ABI = [
+  {
+    "inputs": [{"name": "spender", "type": "address"}, {"name": "amount", "type": "uint256"}],
+    "name": "approve",
+    "outputs": [{"name": "", "type": "bool"}],
+    "stateMutability": "nonpayable",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "owner", "type": "address"}],
+    "name": "balanceOf",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [{"name": "owner", "type": "address"}, {"name": "spender", "type": "address"}],
+    "name": "allowance",
+    "outputs": [{"name": "", "type": "uint256"}],
+    "stateMutability": "view",
+    "type": "function"
+  }
+] as const;
 
 export function PYUSDBridge() {
-  const { address, isConnected } = useAccount();
+  const { address, isConnected, chain } = useAccount();
   
   // Form state
-  const [transferDirection, setTransferDirection] = useState<'ethToHedera' | 'hederaToEth'>('ethToHedera');
   const [amount, setAmount] = useState('');
-  const [destinationAddress, setDestinationAddress] = useState('');
+  const [currentStep, setCurrentStep] = useState<'input' | 'approve' | 'bridge' | 'success'>('input');
   
-  // Hooks
-  const bridgeDashboard = usePYUSDBridgeDashboard(address);
-  const initiateBridgeTransfer = usePYUSDInitiateBridgeTransfer();
-  const initiateReverseBridgeTransfer = usePYUSDInitiateReverseBridgeTransfer();
-  const validateTransfer = usePYUSDValidateTransfer();
-  const timeEstimate = usePYUSDTransferTimeEstimate(
-    transferDirection === 'ethToHedera' ? 'ethereum-sepolia' : 'hedera-testnet',
-    transferDirection === 'ethToHedera' ? 'hedera-testnet' : 'ethereum-sepolia'
-  );
-  const realTimeTransfers = usePYUSDRealTimeTransfers(address || '');
+  // Transaction hooks
+  const { writeContract, data: hash } = useWriteContract();
+  const { isSuccess: isConfirmed } = useWaitForTransactionReceipt({ hash });
+  
+  // Get PYUSD balance (mock for demo)
+  const { data: balance } = useBalance({
+    address,
+    token: SEPOLIA_PYUSD_ADDRESS as `0x${string}`,
+  });
 
-  const handleTransferDirectionChange = () => {
-    setTransferDirection(prev => prev === 'ethToHedera' ? 'hederaToEth' : 'ethToHedera');
-    setDestinationAddress('');
-  };
-
-  const handleValidateTransfer = async () => {
-    if (!amount || !destinationAddress || !address) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-
+  // Bridge functions
+  const handleApprove = async () => {
+    if (!amount || !address) return;
+    
     try {
-      await validateTransfer.mutateAsync({
-        amount,
-        fromNetwork: transferDirection === 'ethToHedera' ? 'ethereum-sepolia' : 'hedera-testnet',
-        toNetwork: transferDirection === 'ethToHedera' ? 'hedera-testnet' : 'ethereum-sepolia',
-        userAddress: address,
-      });
-      toast.success('Transfer parameters validated successfully');
-    } catch (error) {
-      console.error('Validation error:', error);
-    }
-  };
-
-  const handleInitiateTransfer = async () => {
-    if (!amount || !destinationAddress || !address) {
-      toast.error('Please fill in all fields');
-      return;
-    }
-
-    try {
-      if (transferDirection === 'ethToHedera') {
-        await initiateBridgeTransfer.mutateAsync({
-          amount,
-          hederaAddress: destinationAddress,
-          userAddress: address,
-        });
-      } else {
-        await initiateReverseBridgeTransfer.mutateAsync({
-          amount,
-          ethereumAddress: destinationAddress,
-          userAddress: address,
-        });
-      }
+      setCurrentStep('approve');
+      const amountWei = parseUnits(amount, 6);
       
-      // Reset form
-      setAmount('');
-      setDestinationAddress('');
+      writeContract({
+        address: SEPOLIA_PYUSD_ADDRESS as `0x${string}`,
+        abi: ERC20_ABI,
+        functionName: 'approve',
+        args: [BRIDGE_CONTRACT_ADDRESS as `0x${string}`, amountWei],
+      });
+      
+      toast.success('Approval transaction submitted!');
     } catch (error) {
-      console.error('Transfer initiation error:', error);
+      console.error('Approval failed:', error);
+      toast.error('Approval failed');
+      setCurrentStep('input');
     }
   };
 
-  const estimatedFee = bridgeDashboard.info ? 
-    calculateBridgeFee(amount || '0', bridgeDashboard.info as any, transferDirection) : '0';
+  const handleBridge = async () => {
+    if (!amount || !address) return;
+    
+    try {
+      setCurrentStep('bridge');
+      
+      // Mock bridge transaction (in real implementation, this would call bridge contract)
+      toast.success('Bridge transaction initiated!');
+      
+      // Simulate bridge processing
+      setTimeout(() => {
+        setCurrentStep('success');
+        toast.success(`Successfully bridged ${amount} PYUSD to Hedera!`);
+      }, 3000);
+      
+    } catch (error) {
+      console.error('Bridge failed:', error);
+      toast.error('Bridge transaction failed');
+      setCurrentStep('input');
+    }
+  };
 
-  const isLoading = initiateBridgeTransfer.isPending || 
-                   initiateReverseBridgeTransfer.isPending || 
-                   validateTransfer.isPending;
+  const resetForm = () => {
+    setAmount('');
+    setCurrentStep('input');
+  };
 
-  if (!isConnected) {
-    return (
-      <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-        <CardContent className="p-6">
-          <Alert className="bg-yellow-500/10 border-yellow-500/30">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription className="text-yellow-400">
-              Please connect your wallet to use the PYUSD Bridge.
-            </AlertDescription>
-          </Alert>
-        </CardContent>
-      </Card>
-    );
-  }
+  const isValidAmount = amount && parseFloat(amount) > 0;
+  const hasEnoughBalance = balance && amount ? 
+    parseFloat(formatUnits(balance.value, balance.decimals)) >= parseFloat(amount) : false;
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-2">
-          <Bridge className="h-6 w-6 text-orange-400" />
-          <h1 className="text-2xl font-bold text-white">PYUSD Bridge</h1>
+    <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
+      <CardHeader>
+        <CardTitle className="flex items-center space-x-2 text-white">
+          <ArrowRightLeft className="h-5 w-5 text-[#FFE100]" />
+          <span>Bridge PYUSD</span>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Wallet Connection */}
+        <div className="flex justify-center">
+          <ConnectButton />
         </div>
-        <div className="flex items-center space-x-2">
-          <Badge className={`${
-            bridgeDashboard.info?.isActive 
-              ? 'bg-green-500/20 text-green-400 border-green-500/30'
-              : 'bg-red-500/20 text-red-400 border-red-500/30'
-          }`}>
-            {bridgeDashboard.info?.isActive ? 'Bridge Active' : 'Bridge Inactive'}
-          </Badge>
-          <Button
-            onClick={() => bridgeDashboard.refetch()}
-            variant="outline"
-            size="sm"
-            className="border-gray-700 text-gray-300 hover:bg-gray-800"
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
+
+        {/* Network Selection */}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+            <div>
+              <h3 className="font-semibold text-white">From</h3>
+              <p className="text-sm text-gray-300">Ethereum Sepolia</p>
+            </div>
+            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
+              PYUSD
+            </Badge>
+          </div>
+          
+          <div className="flex justify-center">
+            <ArrowDown className="h-6 w-6 text-[#FFE100]" />
+          </div>
+          
+          <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
+            <div>
+              <h3 className="font-semibold text-white">To</h3>
+              <p className="text-sm text-gray-300">Hedera Testnet</p>
+            </div>
+            <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
+              wPYUSD
+            </Badge>
+          </div>
         </div>
-      </div>
 
-      {/* Bridge Statistics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <DollarSign className="h-5 w-5 text-orange-400" />
-              <div>
-                <p className="text-sm text-gray-400">Total Volume</p>
-                <p className="text-xl font-bold text-white">
-                  ${bridgeDashboard.stats?.totalVolume ? parseFloat(bridgeDashboard.stats.totalVolume).toFixed(0) : '0'}
-                </p>
-              </div>
+        <Separator className="bg-gray-700" />
+
+        {/* Amount Input */}
+        <div className="space-y-2">
+          <Label htmlFor="amount" className="text-sm font-medium text-white">
+            Amount to Bridge
+          </Label>
+          <Input
+            id="amount"
+            type="number"
+            step="0.01"
+            min="0"
+            placeholder="0.00"
+            value={amount}
+            onChange={(e) => setAmount(e.target.value)}
+            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-[#FFE100] focus:ring-[#FFE100]/20"
+            disabled={currentStep !== 'input'}
+          />
+          <div className="flex justify-between text-xs text-gray-300">
+            <span>Available Balance:</span>
+            <span>
+              {balance ? `${parseFloat(formatUnits(balance.value, balance.decimals)).toFixed(4)} PYUSD` : '0 PYUSD'}
+            </span>
+          </div>
+        </div>
+
+        {/* Destination Info */}
+        {isConnected && (
+          <div className="bg-gray-800/30 rounded-lg p-4">
+            <div className="flex justify-between items-center">
+              <span className="text-sm text-gray-300">Destination Address:</span>
+              <span className="text-sm text-white font-mono">
+                {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''}
+              </span>
             </div>
-          </CardContent>
-        </Card>
+            <p className="text-xs text-gray-400 mt-1">
+              wPYUSD will be sent to your connected wallet address
+            </p>
+          </div>
+        )}
 
-        <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Activity className="h-5 w-5 text-orange-400" />
-              <div>
-                <p className="text-sm text-gray-400">Total Transfers</p>
-                <p className="text-xl font-bold text-white">
-                  {bridgeDashboard.stats?.totalTransfers || 0}
-                </p>
-              </div>
+        {/* Bridge Info */}
+        <div className="bg-gray-800/30 rounded-lg p-4 space-y-2">
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-300">Bridge Fee:</span>
+            <span className="text-white">0.1%</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-300">Estimated Time:</span>
+            <span className="text-white">2-5 minutes</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-gray-300">You will receive:</span>
+            <span className="text-white">
+              {amount ? `~${(parseFloat(amount) * 0.999).toFixed(4)} wPYUSD` : '0 wPYUSD'}
+            </span>
+          </div>
+        </div>
+
+        {/* Status Messages */}
+        {!isConnected && (
+          <Alert className="border-yellow-500/20 bg-yellow-500/10">
+            <AlertTriangle className="h-4 w-4 text-yellow-500" />
+            <AlertDescription className="text-yellow-200">
+              Please connect your wallet to use the bridge
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {isConnected && chain?.id !== 11155111 && (
+          <Alert className="border-red-500/20 bg-red-500/10">
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <AlertDescription className="text-red-200">
+              Please switch to Ethereum Sepolia network to bridge PYUSD
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {amount && !hasEnoughBalance && (
+          <Alert className="border-red-500/20 bg-red-500/10">
+            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <AlertDescription className="text-red-200">
+              Insufficient PYUSD balance
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Step Indicator */}
+        {currentStep !== 'input' && (
+          <div className="bg-gray-800/30 rounded-lg p-4">
+            <div className="flex items-center space-x-4">
+              {currentStep === 'approve' && (
+                <>
+                  <Loader2 className="h-5 w-5 text-[#FFE100] animate-spin" />
+                  <div>
+                    <p className="font-medium text-white">Approving PYUSD...</p>
+                    <p className="text-sm text-gray-400">Please confirm the approval in your wallet</p>
+                  </div>
+                </>
+              )}
+              {currentStep === 'bridge' && (
+                <>
+                  <Loader2 className="h-5 w-5 text-[#FFE100] animate-spin" />
+                  <div>
+                    <p className="font-medium text-white">Processing Bridge...</p>
+                    <p className="text-sm text-gray-400">Your PYUSD is being bridged to Hedera</p>
+                  </div>
+                </>
+              )}
+              {currentStep === 'success' && (
+                <>
+                  <CheckCircle className="h-5 w-5 text-green-400" />
+                  <div>
+                    <p className="font-medium text-white">Bridge Successful!</p>
+                    <p className="text-sm text-gray-400">Your wPYUSD is now available on Hedera</p>
+                  </div>
+                </>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        )}
 
-        <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <CheckCircle className="h-5 w-5 text-green-400" />
-              <div>
-                <p className="text-sm text-gray-400">Success Rate</p>
-                <p className="text-xl font-bold text-white">
-                  {bridgeDashboard.stats?.successRate.toFixed(1) || '0'}%
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2">
-              <Clock className="h-5 w-5 text-orange-400" />
-              <div>
-                <p className="text-sm text-gray-400">Avg Time</p>
-                <p className="text-xl font-bold text-white">
-                  {bridgeDashboard.stats ? Math.round(bridgeDashboard.stats.averageTransferTime / 60) : 0}m
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Bridge Transfer Form */}
-      <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-        <CardHeader>
-          <CardTitle className="flex items-center space-x-2 text-white">
-            <ArrowRightLeft className="h-5 w-5 text-orange-400" />
-            <span>Bridge Transfer</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Direction Selector */}
-          <div className="flex items-center justify-center">
-            <div className="flex items-center space-x-4 p-2 bg-[#0A0C14] rounded-lg">
-              <div className="text-center">
-                <p className="text-sm text-gray-400">From</p>
-                <p className="text-white font-medium">
-                  {transferDirection === 'ethToHedera' ? 'Ethereum Sepolia' : 'Hedera Testnet'}
-                </p>
-              </div>
+        {/* Action Buttons */}
+        <div className="space-y-3">
+          {currentStep === 'input' && (
+            <Button
+              onClick={handleApprove}
+              disabled={!isConnected || !isValidAmount || !hasEnoughBalance || chain?.id !== 11155111}
+              className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold"
+            >
+              {!isConnected ? 'Connect Wallet' : 
+               chain?.id !== 11155111 ? 'Switch to Sepolia' :
+               !isValidAmount ? 'Enter Amount' :
+               !hasEnoughBalance ? 'Insufficient Balance' :
+               'Start Bridge'}
+            </Button>
+          )}
+          
+          {currentStep === 'approve' && isConfirmed && (
+            <Button
+              onClick={handleBridge}
+              className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold"
+            >
+              Confirm Bridge
+            </Button>
+          )}
+          
+          {currentStep === 'success' && (
+            <div className="space-y-2">
               <Button
-                onClick={handleTransferDirectionChange}
-                variant="outline"
-                size="sm"
-                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+                onClick={resetForm}
+                className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold"
               >
-                <ArrowRightLeft className="h-4 w-4" />
+                Bridge More PYUSD
               </Button>
-              <div className="text-center">
-                <p className="text-sm text-gray-400">To</p>
-                <p className="text-white font-medium">
-                  {transferDirection === 'ethToHedera' ? 'Hedera Testnet' : 'Ethereum Sepolia'}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Amount Input */}
-          <div className="space-y-2">
-            <Label htmlFor="amount" className="text-gray-300">
-              Amount (PYUSD)
-            </Label>
-            <Input
-              id="amount"
-              type="number"
-              step="0.01"
-              min="0"
-              placeholder="0.00"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className="bg-[#0A0C14] border-gray-700 text-white placeholder-gray-500 focus:border-orange-400"
-            />
-            {amount && (
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Estimated Fee:</span>
-                <span className="text-white">${estimatedFee} PYUSD</span>
-              </div>
-            )}
-          </div>
-
-          {/* Destination Address */}
-          <div className="space-y-2">
-            <Label htmlFor="destination" className="text-gray-300">
-              Destination Address ({transferDirection === 'ethToHedera' ? 'Hedera' : 'Ethereum'})
-            </Label>
-            <Input
-              id="destination"
-              placeholder={transferDirection === 'ethToHedera' ? '0.0.123456' : '0x...'}
-              value={destinationAddress}
-              onChange={(e) => setDestinationAddress(e.target.value)}
-              className="bg-[#0A0C14] border-gray-700 text-white placeholder-gray-500 focus:border-orange-400"
-            />
-          </div>
-
-          {/* Transfer Summary */}
-          {amount && destinationAddress && (
-            <div className="p-4 bg-[#0A0C14] rounded-lg border border-gray-800/50">
-              <h4 className="font-semibold text-white mb-3">Transfer Summary</h4>
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Amount:</span>
-                  <span className="text-white">{amount} PYUSD</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Bridge Fee:</span>
-                  <span className="text-white">{estimatedFee} PYUSD</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">You'll Receive:</span>
-                  <span className="text-white font-bold">
-                    {(parseFloat(amount) - parseFloat(estimatedFee)).toFixed(6)} PYUSD
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-gray-400">Estimated Time:</span>
-                  <span className="text-white">
-                    {timeEstimate.data ? `${Math.round(timeEstimate.data.estimatedMinutes)} minutes` : 'Calculating...'}
-                  </span>
-                </div>
-              </div>
+              <Button
+                asChild
+                variant="outline"
+                className="w-full border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                <a href="/markets" className="flex items-center justify-center space-x-2">
+                  <span>Start Betting</span>
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+              </Button>
             </div>
           )}
+        </div>
 
-          {/* Action Buttons */}
-          <div className="flex space-x-3">
-            <Button
-              onClick={handleValidateTransfer}
-              variant="outline"
-              disabled={!amount || !destinationAddress || isLoading}
-              className="flex-1 border-gray-700 text-gray-300 hover:bg-gray-800"
-            >
-              {validateTransfer.isPending ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Shield className="h-4 w-4 mr-2" />
-              )}
-              Validate
-            </Button>
-            <Button
-              onClick={handleInitiateTransfer}
-              disabled={!amount || !destinationAddress || isLoading}
-              className="flex-1 bg-gradient-to-r from-orange-500 to-orange-600 hover:from-orange-600 hover:to-orange-700 text-white"
-            >
-              {isLoading ? (
-                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Bridge className="h-4 w-4 mr-2" />
-              )}
-              Initiate Transfer
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Pending Transfers */}
-      {realTimeTransfers.pendingTransfers && realTimeTransfers.pendingTransfers.length > 0 && (
-        <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-white">
-              <Clock className="h-5 w-5 text-orange-400" />
-              <span>Pending Transfers</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {realTimeTransfers.pendingTransfers.map((transfer) => {
-              const statusInfo = formatTransferStatus(transfer.status);
-              return (
-                <div key={transfer.id} className="p-4 bg-[#0A0C14] rounded-lg border border-gray-800/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
-                      <p className="text-white font-medium">{transfer.amount} PYUSD</p>
-                      <p className="text-gray-400 text-sm">
-                        {transfer.fromNetwork} → {transfer.toNetwork}
-                      </p>
-                    </div>
-                    <Badge className={`bg-${statusInfo.color}-500/20 text-${statusInfo.color}-400 border-${statusInfo.color}-500/30`}>
-                      {statusInfo.label}
-                    </Badge>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">Progress:</span>
-                      <span className="text-white">{transfer.currentStep}/{transfer.totalSteps}</span>
-                    </div>
-                    <Progress 
-                      value={(parseInt(transfer.currentStep) / transfer.totalSteps) * 100} 
-                      className="h-2"
-                    />
-                    <div className="flex justify-between text-sm">
-                      <span className="text-gray-400">ETA:</span>
-                      <span className="text-white">{transfer.estimatedCompletionTime}</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-800">
-                    <div className="flex items-center space-x-2">
-                      <ExternalLink className="h-4 w-4 text-gray-400" />
-                      <span className="text-gray-400 text-sm">
-                        {transfer.sourceTxHash.slice(0, 10)}...{transfer.sourceTxHash.slice(-8)}
-                      </span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="border-gray-700 text-gray-300 hover:bg-gray-800"
-                      onClick={() => window.open(`https://etherscan.io/tx/${transfer.sourceTxHash}`, '_blank')}
-                    >
-                      View Tx
-                    </Button>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Transfer History */}
-      {bridgeDashboard.transferHistory && bridgeDashboard.transferHistory.length > 0 && (
-        <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-white">
-              <Activity className="h-5 w-5 text-orange-400" />
-              <span>Recent Transfers</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {bridgeDashboard.transferHistory.slice(0, 5).map((transfer) => {
-              const statusInfo = formatTransferStatus(transfer.status);
-              return (
-                <div key={transfer.id} className="flex items-center justify-between p-3 bg-[#0A0C14] rounded-lg">
-                  <div>
-                    <p className="text-white font-medium">{transfer.amount} PYUSD</p>
-                    <p className="text-gray-400 text-sm">
-                      {transfer.fromNetwork} → {transfer.toNetwork}
-                    </p>
-                    <p className="text-gray-500 text-xs">
-                      {new Date(transfer.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <Badge className={`bg-${statusInfo.color}-500/20 text-${statusInfo.color}-400 border-${statusInfo.color}-500/30 mb-1`}>
-                      {statusInfo.label}
-                    </Badge>
-                    <p className="text-gray-400 text-xs">Fee: ${transfer.fee}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Bridge Liquidity */}
-      {bridgeDashboard.liquidity && (
-        <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-white">
-              <TrendingUp className="h-5 w-5 text-orange-400" />
-              <span>Bridge Liquidity</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-white mb-3">Ethereum Side</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Available:</span>
-                    <span className="text-white">${parseFloat(bridgeDashboard.liquidity.ethSide.available).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Locked:</span>
-                    <span className="text-white">${parseFloat(bridgeDashboard.liquidity.ethSide.locked).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold">
-                    <span className="text-gray-300">Total:</span>
-                    <span className="text-white">${parseFloat(bridgeDashboard.liquidity.ethSide.total).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-              
-              <div>
-                <h4 className="font-semibold text-white mb-3">Hedera Side</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Available:</span>
-                    <span className="text-white">${parseFloat(bridgeDashboard.liquidity.hederaSide.available).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-gray-400">Minted:</span>
-                    <span className="text-white">${parseFloat(bridgeDashboard.liquidity.hederaSide.minted).toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between font-semibold">
-                    <span className="text-gray-300">Total:</span>
-                    <span className="text-white">${parseFloat(bridgeDashboard.liquidity.hederaSide.total).toFixed(2)}</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="pt-4 border-t border-gray-800">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-400">Utilization Rate:</span>
-                <span className="text-white font-bold">{bridgeDashboard.liquidity.utilizationRate.toFixed(1)}%</span>
-              </div>
-              <Progress 
-                value={bridgeDashboard.liquidity.utilizationRate} 
-                className="h-2 mt-2"
-              />
-            </div>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+        {/* Help Text */}
+        <div className="text-center">
+          <p className="text-xs text-gray-300">
+            Need help? Check our{' '}
+            <a href="/learn" className="text-[#FFE100] hover:underline">
+              bridge guide
+            </a>
+          </p>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
