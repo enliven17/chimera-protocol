@@ -15,6 +15,8 @@ import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useChimeraProtocol } from "@/hooks/useChimeraProtocol";
 import { useDirectContract } from "@/hooks/useDirectContract";
+import { usePythPrice } from "@/hooks/usePythPrices";
+import { PYTH_PRICE_IDS } from "@/lib/pyth-client";
 import { OwnerOnly } from "@/components/auth/owner-only";
 import { useAccount } from "wagmi";
 import { MarketStatus } from "@/types/market";
@@ -48,6 +50,18 @@ export default function MarketDetailPage() {
   const [market, setMarket] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Get live BTC price for BTC markets
+  const { data: btcPrice, isLoading: btcPriceLoading } = usePythPrice(
+    PYTH_PRICE_IDS.BTC_USD,
+    market?.title?.toLowerCase().includes('bitcoin') || market?.title?.toLowerCase().includes('btc')
+  );
+
+  // Get live ETH price for ETH markets
+  const { data: ethPrice, isLoading: ethPriceLoading } = usePythPrice(
+    PYTH_PRICE_IDS.ETH_USD,
+    market?.title?.toLowerCase().includes('ethereum') || market?.title?.toLowerCase().includes('eth')
+  );
   
   const fetchMarket = async () => {
     try {
@@ -257,6 +271,106 @@ export default function MarketDetailPage() {
           <p className="text-lg text-gray-300 leading-relaxed mb-6">
             {market.description}
           </p>
+
+          {/* Live BTC Price for BTC Markets */}
+          {(market.title?.toLowerCase().includes('bitcoin') || market.title?.toLowerCase().includes('btc')) && (
+            <div className="bg-gradient-to-r from-orange-500/10 to-yellow-500/10 border border-orange-500/20 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center">
+                    <TrendingUp className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Live BTC Price</h3>
+                    <p className="text-xs text-gray-400">Powered by Pyth Network</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  {btcPriceLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-orange-500"></div>
+                      <span className="text-gray-400">Loading...</span>
+                    </div>
+                  ) : btcPrice ? (
+                    <div>
+                      <div className="text-2xl font-bold text-white">
+                        ${parseFloat(btcPrice.formattedPrice).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Updated: {new Date(btcPrice.publishTime * 1000).toLocaleTimeString()}
+                      </div>
+                      {market.title?.includes('150') && (
+                        <div className="text-xs mt-1">
+                          <span className={`font-medium ${
+                            parseFloat(btcPrice.formattedPrice) >= 150000 
+                              ? 'text-green-400' 
+                              : 'text-orange-400'
+                          }`}>
+                            {parseFloat(btcPrice.formattedPrice) >= 150000 
+                              ? '✅ Target Reached!' 
+                              : `📈 ${((150000 - parseFloat(btcPrice.formattedPrice)) / parseFloat(btcPrice.formattedPrice) * 100).toFixed(1)}% to go`
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-gray-400">Price unavailable</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Live ETH Price for ETH Markets */}
+          {(market.title?.toLowerCase().includes('ethereum') || market.title?.toLowerCase().includes('eth')) && (
+            <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-blue-500/20 rounded-lg p-4 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                    <TrendingUp className="h-4 w-4 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-white">Live ETH Price</h3>
+                    <p className="text-xs text-gray-400">Powered by Pyth Network</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  {ethPriceLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500"></div>
+                      <span className="text-gray-400">Loading...</span>
+                    </div>
+                  ) : ethPrice ? (
+                    <div>
+                      <div className="text-2xl font-bold text-white">
+                        ${parseFloat(ethPrice.formattedPrice).toLocaleString()}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        Updated: {new Date(ethPrice.publishTime * 1000).toLocaleTimeString()}
+                      </div>
+                      {market.title?.includes('7') && (
+                        <div className="text-xs mt-1">
+                          <span className={`font-medium ${
+                            parseFloat(ethPrice.formattedPrice) >= 7000 
+                              ? 'text-green-400' 
+                              : 'text-blue-400'
+                          }`}>
+                            {parseFloat(ethPrice.formattedPrice) >= 7000 
+                              ? '✅ Target Reached!' 
+                              : `📈 ${((7000 - parseFloat(ethPrice.formattedPrice)) / parseFloat(ethPrice.formattedPrice) * 100).toFixed(1)}% to go`
+                            }
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-gray-400">Price unavailable</div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Market Meta */}
           <div className="flex flex-wrap gap-6 text-sm text-gray-400">

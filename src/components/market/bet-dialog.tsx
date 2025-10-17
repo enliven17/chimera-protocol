@@ -8,7 +8,7 @@ import { useChimeraProtocol } from '@/hooks/useChimeraProtocol';
 import { usePYUSD } from '@/hooks/usePYUSD';
 import { useAccount } from 'wagmi';
 import { toast } from 'sonner';
-import { Loader2, TrendingUp, AlertCircle, CheckCircle } from 'lucide-react';
+import { Loader2, TrendingUp, AlertCircle, CheckCircle, ArrowRight, Shield, Coins } from 'lucide-react';
 
 interface BetDialogProps {
   open: boolean;
@@ -33,6 +33,29 @@ export const BetDialog: React.FC<BetDialogProps> = ({
 }) => {
   const [betAmount, setBetAmount] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Persistent step state that survives page refreshes
+  const getStoredStep = () => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem(`bet-step-${marketId}`);
+      return stored as 'input' | 'approval' | 'betting' | 'success' || 'input';
+    }
+    return 'input';
+  };
+  
+  const [currentStep, setCurrentStep] = useState<'input' | 'approval' | 'betting' | 'success'>(getStoredStep);
+  
+  // Update localStorage when step changes
+  const updateStep = (step: 'input' | 'approval' | 'betting' | 'success') => {
+    setCurrentStep(step);
+    if (typeof window !== 'undefined') {
+      if (step === 'input') {
+        localStorage.removeItem(`bet-step-${marketId}`);
+      } else {
+        localStorage.setItem(`bet-step-${marketId}`, step);
+      }
+    }
+  };
 
   const { address, isConnected, chain } = useAccount();
   const { 
@@ -58,18 +81,31 @@ export const BetDialog: React.FC<BetDialogProps> = ({
     if (isConfirmed && hash) {
       toast.success('Bet placed successfully!');
       setBetAmount('');
+      setCurrentStep('input');
       onSuccess?.();
       onOpenChange(false);
     }
   }, [isConfirmed, hash, onSuccess, onOpenChange]);
 
+  // Reset step when dialog closes
+  useEffect(() => {
+    if (!open) {
+      updateStep('input');
+      setBetAmount('');
+      setManualAllowanceApproved(false);
+    }
+  }, [open]);
+
   // Check if user has enough balance
   const hasEnoughBalance = balance && betAmount ? 
     parseFloat(formatPYUSDBalance(balance)) >= parseFloat(betAmount) : false;
 
+  // Manual allowance tracking to prevent page refresh issues
+  const [manualAllowanceApproved, setManualAllowanceApproved] = useState(false);
+  
   // Check if user has enough allowance
-  const hasEnoughAllowance = allowance && betAmount ? 
-    hasAllowance(allowance, betAmount) : false;
+  const hasEnoughAllowance = (allowance && betAmount ? 
+    hasAllowance(allowance, betAmount) : false) || manualAllowanceApproved;
 
   const needsApproval = betAmount && parseFloat(betAmount) > 0 && !hasEnoughAllowance;
 
@@ -78,11 +114,23 @@ export const BetDialog: React.FC<BetDialogProps> = ({
     
     try {
       setIsSubmitting(true);
-      await approveChimera(betAmount);
-      toast.success('Approval transaction submitted! Please wait for confirmation.');
+      updateStep('approval');
+      
+      const txHash = await approveChimera(betAmount);
+      
+      console.log('✅ Approval submitted:', txHash);
+      
+      // Mark allowance as approved manually to avoid page refresh
+      setManualAllowanceApproved(true);
+      
+      // Show success message and allow user to proceed
+      toast.success('Approval successful! You can now place your bet.', {
+        duration: 3000
+      });
+      
     } catch (error: any) {
       console.error('Approval failed:', error);
-      toast.error('Approval failed: ' + (error.message || 'Unknown error'));
+      updateStep('input'); // Reset on error
     } finally {
       setIsSubmitting(false);
     }
@@ -113,6 +161,7 @@ export const BetDialog: React.FC<BetDialogProps> = ({
 
     try {
       setIsSubmitting(true);
+      updateStep('betting');
       
       console.log('🔗 Wallet Status:', {
         address,
@@ -131,27 +180,38 @@ export const BetDialog: React.FC<BetDialogProps> = ({
         throw new Error(`Wrong network. Expected Hedera Testnet (296), got ${chain?.id}`);
       }
       
-      await placeBet(parseInt(marketId), optionIndex, betAmount);
+      const txHash = await placeBet(parseInt(marketId), optionIndex, betAmount);
       
-      console.log('✅ Bet transaction submitted successfully');
-      toast.success('Bet transaction submitted! Please wait for confirmation.');
+      console.log('✅ Bet transaction submitted successfully:', txHash);
+      
+      // Show success step
+      updateStep('success');
+      
+      // Close dialog after successful bet
+      setTimeout(() => {
+        onOpenChange(false);
+        setBetAmount('');
+        updateStep('input');
+        onSuccess?.();
+      }, 3000);
     } catch (error: any) {
       console.error('❌ Bet failed:', error);
       
-      // More detailed error handling
-      let errorMessage = 'Unknown error';
-      if (error.message) {
-        errorMessage = error.message;
-      } else if (error.reason) {
-        errorMessage = error.reason;
-      } else if (error.code) {
-        errorMessage = `Error code: ${error.code}`;
+      // User-friendly error messages - don't show technical details
+      let errorMessage = 'Failed to place bet';
+      
+      if (error.message?.includes('cancelled') || error.message?.includes('rejected') || error.message?.includes('denied')) {
+        errorMessage = 'Transaction cancelled';
+      } else if (error.message?.includes('insufficient')) {
+        errorMessage = 'Insufficient balance or gas';
+      } else if (error.message?.includes('allowance')) {
+        errorMessage = 'Please approve token spending first';
+      } else if (error.message?.includes('network')) {
+        errorMessage = 'Network error - please try again';
       }
       
-      toast.error('Bet failed: ' + errorMessage);
-      
-      // Log full error for debugging
-      console.log('Full error object:', error);
+      toast.error(errorMessage);
+      updateStep('input'); // Reset step on error
     } finally {
       setIsSubmitting(false);
     }
@@ -175,6 +235,80 @@ export const BetDialog: React.FC<BetDialogProps> = ({
         </DialogHeader>
 
         <div className="space-y-6">
+          {/* Step Indicator */}
+          {needsApproval && (
+            <div className="bg-gray-800/30 rounded-lg p-4">
+              <h3 className="font-semibold text-sm text-gray-300 mb-3">Betting Process</h3>
+              <div className="flex items-center space-x-2 text-xs">
+                {/* Step 1: Approval */}
+                <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
+                  currentStep === 'approval' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                  currentStep === 'betting' || currentStep === 'success' ? 'bg-green-500/20 text-green-400' :
+                  'bg-gray-700/50 text-gray-400'
+                }`}>
+                  <Shield className="h-3 w-3" />
+                  <span>1. Approve Spending</span>
+                  {(currentStep === 'betting' || currentStep === 'success') && <CheckCircle className="h-3 w-3" />}
+                  {currentStep === 'approval' && <Loader2 className="h-3 w-3 animate-spin" />}
+                </div>
+                
+                <ArrowRight className="h-3 w-3 text-gray-500" />
+                
+                {/* Step 2: Place Bet */}
+                <div className={`flex items-center space-x-2 px-3 py-2 rounded-lg ${
+                  currentStep === 'betting' ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' :
+                  currentStep === 'success' ? 'bg-green-500/20 text-green-400' :
+                  'bg-gray-700/50 text-gray-400'
+                }`}>
+                  <Coins className="h-3 w-3" />
+                  <span>2. Place Bet</span>
+                  {currentStep === 'success' && <CheckCircle className="h-3 w-3" />}
+                  {currentStep === 'betting' && <Loader2 className="h-3 w-3 animate-spin" />}
+                </div>
+              </div>
+              
+              {/* Step Description */}
+              <div className="mt-3 text-xs text-gray-400">
+                {currentStep === 'input' && needsApproval && (
+                  <div className="flex items-start space-x-2">
+                    <Shield className="h-4 w-4 text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-blue-400">Approval Required</p>
+                      <p>First, you need to approve the contract to spend your wPYUSD tokens. This is a one-time security step.</p>
+                    </div>
+                  </div>
+                )}
+                {currentStep === 'approval' && (
+                  <div className="flex items-start space-x-2">
+                    <Loader2 className="h-4 w-4 text-blue-400 animate-spin mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-blue-400">Approving Spending Cap...</p>
+                      <p>Please confirm the spending cap approval in your wallet. This allows the contract to use your tokens for betting.</p>
+                    </div>
+                  </div>
+                )}
+                {currentStep === 'betting' && (
+                  <div className="flex items-start space-x-2">
+                    <Loader2 className="h-4 w-4 text-yellow-400 animate-spin mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-yellow-400">Placing Your Bet...</p>
+                      <p>Confirm the betting transaction in your wallet to place your {betAmount} wPYUSD bet.</p>
+                    </div>
+                  </div>
+                )}
+                {currentStep === 'success' && (
+                  <div className="flex items-start space-x-2">
+                    <CheckCircle className="h-4 w-4 text-green-400 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="font-medium text-green-400">Bet Placed Successfully!</p>
+                      <p>Your bet has been confirmed on the Hedera network. Good luck! 🎯</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
           <div className="bg-gray-800/30 rounded-lg p-4 space-y-2">
             <h3 className="font-semibold text-sm text-gray-300">Market</h3>
             <p className="text-white font-medium">{marketTitle}</p>

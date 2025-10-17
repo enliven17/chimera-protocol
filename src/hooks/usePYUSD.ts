@@ -89,6 +89,10 @@ export function usePYUSD() {
       args: address ? [address] : undefined,
       query: {
         enabled: !!address && !!PYUSD_ADDRESS,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        staleTime: 30000, // 30 seconds
       },
     });
 
@@ -139,6 +143,10 @@ export function usePYUSD() {
       args: owner ? [owner, spender] : undefined,
       query: {
         enabled: !!owner && !!PYUSD_ADDRESS && !!spender,
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        staleTime: 30000, // 30 seconds
       },
     });
 
@@ -257,12 +265,40 @@ export function usePYUSD() {
       });
 
       console.log('✅ Approval transaction hash:', txHash);
-      toast.success(`Approval transaction submitted! Hash: ${txHash}`);
+      
+      // Show success with Hedera explorer link
+      const explorerUrl = `https://hashscan.io/testnet/transaction/${txHash}`;
+      toast.success(
+        `Approval successful! View on Hedera: ${explorerUrl}`,
+        {
+          duration: 10000,
+          action: {
+            label: 'View Transaction',
+            onClick: () => window.open(explorerUrl, '_blank')
+          }
+        }
+      );
       
       return txHash;
     } catch (error) {
       console.error("❌ Error approving:", error);
-      toast.error("Failed to approve: " + (error.message || 'Unknown error'));
+      
+      // User-friendly error messages
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error.message?.includes('User rejected') || error.message?.includes('User denied')) {
+        errorMessage = 'Transaction cancelled by user';
+      } else if (error.message?.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds for gas fee';
+      } else if (error.message?.includes('network')) {
+        errorMessage = 'Network connection error';
+      } else if (error.code === 4001) {
+        errorMessage = 'Transaction cancelled by user';
+      } else if (error.code === -32603) {
+        errorMessage = 'Transaction failed';
+      }
+      
+      toast.error(errorMessage);
       throw error;
     }
   };

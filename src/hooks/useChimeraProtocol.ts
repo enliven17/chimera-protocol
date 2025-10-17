@@ -113,6 +113,12 @@ export function useChimeraProtocol() {
       abi: CHIMERA_ABI,
       functionName: "getMarket",
       args: [BigInt(marketId)],
+      query: {
+        refetchOnWindowFocus: false,
+        refetchOnMount: false,
+        refetchOnReconnect: false,
+        staleTime: 30000, // 30 seconds
+      },
     });
   };
 
@@ -255,18 +261,43 @@ export function useChimeraProtocol() {
       });
 
       console.log('✅ Transaction hash:', txHash);
-      toast.success(`Bet placement transaction submitted! Hash: ${txHash}`);
+      
+      // Show success with Hedera explorer link
+      const explorerUrl = `https://hashscan.io/testnet/transaction/${txHash}`;
+      toast.success(
+        `Bet placed successfully! 🎯`,
+        {
+          description: `Transaction: ${txHash.slice(0, 10)}...${txHash.slice(-8)}`,
+          duration: 10000,
+          action: {
+            label: 'View on Hedera',
+            onClick: () => window.open(explorerUrl, '_blank')
+          }
+        }
+      );
       
       return txHash;
     } catch (error) {
       console.error("❌ Error placing bet:", error);
-      console.log('Error details:', {
-        message: error.message,
-        code: error.code,
-        reason: error.reason,
-        stack: error.stack
-      });
-      toast.error("Failed to place bet: " + (error.message || 'Unknown error'));
+      
+      // User-friendly error messages
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error.message?.includes('User rejected') || error.message?.includes('User denied')) {
+        errorMessage = 'Transaction cancelled by user';
+      } else if (error.message?.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds for gas fee';
+      } else if (error.message?.includes('allowance')) {
+        errorMessage = 'Please approve token spending first';
+      } else if (error.message?.includes('network')) {
+        errorMessage = 'Network connection error';
+      } else if (error.code === 4001) {
+        errorMessage = 'Transaction cancelled by user';
+      } else if (error.code === -32603) {
+        errorMessage = 'Transaction failed';
+      }
+      
+      toast.error(errorMessage);
       throw error; // Re-throw so caller can handle
     }
   };

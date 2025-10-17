@@ -48,7 +48,7 @@ async def get_pyth_price(symbol='BTC'):
         
         # Use correct Pyth price feed IDs
         price_ids = {
-            'BTC': '0xe62df6c8b4c85fe1d7b8cff1e4b4e8b1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1c1',
+            'BTC': '0xe62df6c8b4a85fe1a67db44dc12de5db330f7ac66b72dc658afedf0f4a415b43',
             'ETH': '0xff61491a931112ddf1bd8147cd1b641375f79f5825126d665480874634fd0ace',
             'HBAR': '0x8ac0c70fff57e9aefdf5edf44b51d62c2d433653cbb2cf5cc06bb115af04d221'
         }
@@ -73,8 +73,8 @@ async def get_pyth_price(symbol='BTC'):
                             'status': 'success'
                         }
         
-        # Fallback to mock data if Pyth fails
-        mock_prices = {'BTC': 67500, 'ETH': 2650, 'HBAR': 0.12}
+        # Fallback to realistic mock data if Pyth fails
+        mock_prices = {'BTC': 106632, 'ETH': 2650, 'HBAR': 0.12}
         return {
             'symbol': symbol,
             'price': mock_prices.get(symbol, 50000),
@@ -85,8 +85,8 @@ async def get_pyth_price(symbol='BTC'):
         
     except Exception as e:
         print(f"❌ Error fetching Pyth price for {symbol}: {e}")
-        # Return mock data on error
-        mock_prices = {'BTC': 67500, 'ETH': 2650, 'HBAR': 0.12}
+        # Return realistic mock data on error
+        mock_prices = {'BTC': 106632, 'ETH': 2650, 'HBAR': 0.12}
         return {
             'symbol': symbol,
             'price': mock_prices.get(symbol, 50000),
@@ -104,7 +104,7 @@ def get_pyth_price_sync(symbol='BTC'):
         return loop.run_until_complete(get_pyth_price(symbol))
     except Exception as e:
         print(f"❌ Error in sync Pyth price fetch: {e}")
-        mock_prices = {'BTC': 67500, 'ETH': 2650, 'HBAR': 0.12}
+        mock_prices = {'BTC': 106632, 'ETH': 2650, 'HBAR': 0.12}
         return {
             'symbol': symbol,
             'price': mock_prices.get(symbol, 50000),
@@ -133,10 +133,10 @@ def get_real_market_data():
         
         markets = []
         
-        # For now, just get market 1 (we know it exists)
-        # In future, we can get market count and iterate
-        try:
-            market_data = contract.functions.getMarket(1).call()
+        # Get multiple markets (we now have market 1 and 2)
+        for market_id in [1, 2]:
+            try:
+                market_data = contract.functions.getMarket(market_id).call()
             
             # Parse the market data tuple
             (id, title, description, optionA, optionB, category, creator, 
@@ -170,13 +170,13 @@ def get_real_market_data():
                 'hasActivity': total_shares > 0
             }
             
-            markets.append(market)
-            print(f"✅ Loaded real market: {title}")
-            print(f"   Pool: {market['totalVolume']:.2f} PYUSD")
-            print(f"   Ratios: A={option_a_ratio:.1%}, B={option_b_ratio:.1%}")
-            
-        except Exception as e:
-            print(f"⚠️ Could not load market 1: {e}")
+                markets.append(market)
+                print(f"✅ Loaded real market {market_id}: {title}")
+                print(f"   Pool: {market['totalVolume']:.2f} PYUSD")
+                print(f"   Ratios: A={option_a_ratio:.1%}, B={option_b_ratio:.1%}")
+                
+            except Exception as e:
+                print(f"⚠️ Could not load market {market_id}: {e}")
         
         # If no real markets, return fallback
         if not markets:
@@ -254,9 +254,11 @@ def analyze_market_with_ai(market_data):
         total_volume = market_data['totalVolume']
         has_activity = market_data.get('hasActivity', total_volume > 0)
         
-        # Get current BTC price from Pyth for context
+        # Get current crypto prices from Pyth for context
         btc_price_data = get_pyth_price_sync('BTC')
+        eth_price_data = get_pyth_price_sync('ETH')
         current_btc_price = btc_price_data['price']
+        current_eth_price = eth_price_data['price']
         
         # Base analysis structure
         analysis = {
@@ -272,8 +274,11 @@ def analyze_market_with_ai(market_data):
             'optionB': market_data.get('optionB', 'Option B'),
             'priceData': {
                 'currentBTC': current_btc_price,
-                'target': 150000,
-                'distance': ((150000 - current_btc_price) / current_btc_price) * 100,
+                'currentETH': current_eth_price,
+                'btcTarget': 150000,
+                'ethTarget': 7000,
+                'btcDistance': ((150000 - current_btc_price) / current_btc_price) * 100,
+                'ethDistance': ((7000 - current_eth_price) / current_eth_price) * 100,
                 'pythStatus': btc_price_data['status']
             }
         }
@@ -282,23 +287,43 @@ def analyze_market_with_ai(market_data):
         if not has_activity:
             # For BTC $150k market, analyze current price vs target
             if 'bitcoin' in market_data['title'].lower() and '150' in market_data['title']:
-                distance_to_target = analysis['priceData']['distance']
+                distance_to_target = analysis['priceData']['btcDistance']
                 
                 if distance_to_target < 50:  # Less than 50% to go
                     analysis['confidence'] = 0.7
                     analysis['recommendation'] = 'BUY_A'
-                    analysis['reasoning'] = f"🎯 PRICE ANALYSIS: BTC currently at ${current_btc_price:,.0f}, only {distance_to_target:.1f}% away from $150k target. Strong fundamental case for 'Yes'. No crowd bias yet - good entry opportunity."
+                    analysis['reasoning'] = f"🎯 BTC ANALYSIS: Currently at ${current_btc_price:,.0f}, only {distance_to_target:.1f}% away from $150k target. Strong fundamental case for 'Yes'. No crowd bias yet - good entry opportunity."
                     analysis['riskLevel'] = 'medium'
                 elif distance_to_target > 100:  # More than 100% to go
                     analysis['confidence'] = 0.6
                     analysis['recommendation'] = 'BUY_B'
-                    analysis['reasoning'] = f"📊 PRICE ANALYSIS: BTC at ${current_btc_price:,.0f}, needs {distance_to_target:.1f}% gain to reach $150k. Significant challenge ahead. 'No' has value at current levels."
+                    analysis['reasoning'] = f"📊 BTC ANALYSIS: At ${current_btc_price:,.0f}, needs {distance_to_target:.1f}% gain to reach $150k. Significant challenge ahead. 'No' has value at current levels."
                     analysis['riskLevel'] = 'medium'
                 else:
                     analysis['confidence'] = 0.4
                     analysis['recommendation'] = 'WAIT'
-                    analysis['reasoning'] = f"⚖️ PRICE ANALYSIS: BTC at ${current_btc_price:,.0f}, {distance_to_target:.1f}% from $150k target. Balanced risk/reward. Wait for crowd bias or price movement."
+                    analysis['reasoning'] = f"⚖️ BTC ANALYSIS: At ${current_btc_price:,.0f}, {distance_to_target:.1f}% from $150k target. Balanced risk/reward. Wait for crowd bias or price movement."
                     analysis['riskLevel'] = 'medium'
+            
+            # For ETH $7k market, analyze current price vs target
+            elif 'ethereum' in market_data['title'].lower() and '7' in market_data['title']:
+                distance_to_target = analysis['priceData']['ethDistance']
+                
+                if distance_to_target < 50:  # Less than 50% to go
+                    analysis['confidence'] = 0.75
+                    analysis['recommendation'] = 'BUY_A'
+                    analysis['reasoning'] = f"🎯 ETH ANALYSIS: Currently at ${current_eth_price:,.0f}, only {distance_to_target:.1f}% away from $7k target. ETH has strong momentum potential. 'Yes' looks favorable."
+                    analysis['riskLevel'] = 'medium'
+                elif distance_to_target > 120:  # More than 120% to go (ETH is more volatile)
+                    analysis['confidence'] = 0.65
+                    analysis['recommendation'] = 'BUY_B'
+                    analysis['reasoning'] = f"📊 ETH ANALYSIS: At ${current_eth_price:,.0f}, needs {distance_to_target:.1f}% gain to reach $7k. Very ambitious target for ETH. 'No' has value."
+                    analysis['riskLevel'] = 'medium'
+                else:
+                    analysis['confidence'] = 0.5
+                    analysis['recommendation'] = 'WAIT'
+                    analysis['reasoning'] = f"⚖️ ETH ANALYSIS: At ${current_eth_price:,.0f}, {distance_to_target:.1f}% from $7k target. ETH is volatile - could go either way. Wait for clearer signals."
+                    analysis['riskLevel'] = 'high'
             else:
                 analysis['confidence'] = 0.3
                 analysis['recommendation'] = 'WAIT'
@@ -323,6 +348,33 @@ def analyze_market_with_ai(market_data):
                         'weight': 0.2,
                         'value': 0.7 if distance_to_target < 75 else 0.3,
                         'description': f"Price momentum: {'Favorable' if distance_to_target < 75 else 'Challenging'}"
+                    },
+                    {
+                        'name': 'Time Horizon',
+                        'weight': 0.1,
+                        'value': 0.8,
+                        'description': 'Long timeframe until Dec 2025'
+                    }
+                ]
+            elif 'ethereum' in market_data['title'].lower():
+                analysis['factors'] = [
+                    {
+                        'name': 'Price Distance to Target',
+                        'weight': 0.4,
+                        'value': max(0, 1 - abs(distance_to_target) / 120),  # ETH more volatile
+                        'description': f"ETH ${current_eth_price:,.0f} → $7k ({distance_to_target:+.1f}%)"
+                    },
+                    {
+                        'name': 'Market Activity',
+                        'weight': 0.3,
+                        'value': 0.0,
+                        'description': 'No bets placed yet - fresh market'
+                    },
+                    {
+                        'name': 'Volatility Factor',
+                        'weight': 0.2,
+                        'value': 0.8,  # ETH is more volatile = higher potential
+                        'description': 'ETH high volatility = higher upside potential'
                     },
                     {
                         'name': 'Time Horizon',
