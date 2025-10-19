@@ -1,6 +1,6 @@
 # ChimeraAI 🔮
 
-An AI-powered prediction market platform on Hedera EVM with autonomous agents, Pyth Oracle integration, and PYUSD betting. Features ASI Alliance reasoning agents for intelligent, automated trading strategies.
+An AI-powered prediction market platform on Hedera EVM with autonomous agents, Pyth Oracle integration, and PYUSD betting. Features ASI Alliance reasoning agents for intelligent, automated trading strategies and seamless cross-chain PYUSD bridging.
 
 ## 🎯 Deployed Contracts (Hedera Testnet)
 
@@ -9,6 +9,7 @@ An AI-powered prediction market platform on Hedera EVM with autonomous agents, P
 | **ChimeraProtocol** | `0xeF2E2B87A82c10F68183f7654784eEbFeC160b44` | ✅ Deployed & Verified |
 | **wPYUSD** | `0x9D5F12DBe903A0741F675e4Aa4454b2F7A010aB4` | ✅ Deployed & Working |
 | **Pyth Oracle** | `0xa2aa501b19aff244d90cc15a4cf739d2725b5729` | ✅ Integrated & Tested |
+| **PYUSD Bridge** | Cross-chain bridge system | ✅ Frontend Integration Complete |
 
 ## 🎯 Project Overview
 
@@ -24,35 +25,45 @@ ChimeraAI combines cutting-edge AI agents with decentralized prediction markets 
 | **Pyth Network** | Oracle price feeds for price markets | Oracle Integration |
 
 
-## 🚀 New Frontend Integrations
+## 🚀 Platform Features
 
-The frontend now includes comprehensive integrations with all system components:
+### 🌉 PYUSD Bridge (NEW!)
+**Complete cross-chain bridge interface for seamless PYUSD transfers:**
+- **Ethereum Sepolia → Hedera Testnet** bridge integration
+- **RainbowKit Integration** for wallet connection and network switching
+- **Real-time Balance Display** and transaction status
+- **Automated Destination Address** using connected wallet
+- **Bridge Fee Calculation** (0.1%) and estimated completion time (2-5 minutes)
+- **Step-by-step Process**: Approval → Bridge → Success with visual feedback
+- **Direct Integration** with prediction markets for immediate betting
 
 ### 📊 System Dashboard
 - Real-time monitoring of all ecosystem components
-- ASI Agent performance metrics
-- System security status
-- Bridge statistics and health monitoring
-- Live price feeds from Pyth Network
+- ASI Agent performance metrics and chat interface
+- System security status and health monitoring
+- Bridge statistics and cross-chain transfer analytics
+- Live price feeds from Pyth Network integration
 
-### 🧠 Market Intelligence
-- AI-powered market analysis using ASI Alliance agents
-- MeTTa reasoning for contrarian betting strategies
-- Sentiment analysis from multiple data sources
-- Risk assessment and betting recommendations
-- Real-time price condition monitoring
+### 🧠 Market Intelligence & AI Agents
+- **ASI Alliance Integration** with MeTTa reasoning for market analysis
+- **Interactive Chat Interface** for natural language market queries
+- **Agent Delegation System** for autonomous betting strategies
+- **Sentiment Analysis** from multiple data sources
+- **Risk Assessment** and intelligent betting recommendations
+- **Real-time Price Monitoring** and condition analysis
 
-### 🌉 PYUSD Bridge Interface
-- Seamless transfers between Ethereum and Hedera
-- Real-time transfer status tracking
-- Liquidity monitoring and fee calculation
-- Transfer history and analytics
+### 🎯 Prediction Markets
+- **Price Direction Markets** with Pyth Oracle integration
+- **Custom Event Markets** with manual resolution
+- **Real-time Betting Interface** with PYUSD integration
+- **Market Creation Tools** for community-driven predictions
+- **Live Market Analytics** and betting statistics
 
-### 🔐 Enhanced Security
-- Direct contract execution
-- Secure transaction validation
-- Audit trail and execution history
-- Emergency stop mechanisms
+### 🔐 Enhanced Security & Infrastructure
+- **Direct RPC Integration** for real-time blockchain data
+- **Secure Transaction Validation** and execution
+- **Comprehensive Audit Trail** for all operations
+- **Emergency Stop Mechanisms** and safety controls
 
 ## 🛠️ Architecture Overview
 
@@ -62,49 +73,64 @@ graph TB
         FE[Next.js App]
         SD[System Dashboard]
         MI[Market Intelligence]
-        BR[Bridge Interface]
+        BR[PYUSD Bridge Interface]
+        MK[Markets & Betting]
     end
 
     subgraph "AI Layer"
         ASI[ASI Alliance Agent]
+        CHAT[Chat Interface]
+        AGENT[Agent Delegation]
+    end
 
+    subgraph "Cross-Chain Layer"
+        ETH[Ethereum Sepolia]
+        BRIDGE[PYUSD Bridge]
+        HED[Hedera Testnet]
     end
 
     subgraph "Data Layer"
         RPC[Direct RPC Calls]
         PYT[Pyth Oracle]
-        ETH[Ethers.js]
+        RK[RainbowKit]
     end
 
     subgraph "Blockchain Layer"
         CP[ChimeraProtocol]
         PYUSD[wPYUSD Token]
-        BRIDGE[PYUSD Bridge]
+        WALLET[Multi-Chain Wallets]
     end
 
     FE --> SD
     FE --> MI
     FE --> BR
+    FE --> MK
     
     SD --> ASI
-    SD --> LIT
+    SD --> CHAT
     SD --> RPC
-    SD --> ETH
     
     MI --> ASI
+    MI --> AGENT
     MI --> RPC
     MI --> PYT
     
+    BR --> RK
     BR --> BRIDGE
-    BR --> RPC
+    BR --> ETH
+    BR --> HED
     
-    ASI --> LIT
-    LIT --> CP
+    MK --> CP
+    MK --> PYUSD
+    MK --> WALLET
+    
+    ASI --> CP
+    AGENT --> CP
     CP --> PYUSD
     CP --> PYT
     
     RPC --> CP
-    ETH --> CP
+    RK --> WALLET
 ```
 | **ASI Alliance** | MeTTa reasoning with direct contract analysis | 🚀 Best use of Artificial Superintelligence Alliance |
 | **Hedera** | EVM contracts + Agent Kit integration | EVM Innovator Track + Best Use of Hedera Agent Kit |
@@ -149,11 +175,15 @@ graph TB
 
 ### Prerequisites
 
-- Node.js 18+
-- npm or yarn
-- MetaMask with Hedera Testnet
-- Hedera testnet HBAR
-- Python 3.8+ (for ASI agent)
+- **Node.js 18+** and npm/yarn
+- **MetaMask or compatible wallet** with:
+  - Ethereum Sepolia testnet (for PYUSD bridging)
+  - Hedera Testnet (for prediction markets)
+- **Test Tokens:**
+  - Sepolia ETH (for gas fees)
+  - Hedera HBAR (for transactions)
+  - PYUSD on Sepolia (for bridging)
+- **Python 3.8+** (for ASI agent)
 
 ### Installation
 
@@ -167,7 +197,17 @@ npm install
 2. **Configure environment:**
 ```bash
 cp .env.example .env
-# Edit .env with your configuration
+# Edit .env with your configuration:
+# - NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID (for RainbowKit)
+# - HEDERA_RPC_URL (Hedera testnet RPC)
+# - ASI agent configuration
+```
+
+3. **Setup wallet networks:**
+```bash
+# Add Ethereum Sepolia (Chain ID: 11155111)
+# Add Hedera Testnet (Chain ID: 296)
+# Configure RainbowKit for multi-chain support
 ```
 
 ## 🧪 Headless Run (No Demo UI)
@@ -223,18 +263,39 @@ npm run deploy:hedera-testnet
 
 4. **Start the platform:**
 ```bash
-# Frontend
+# Frontend (includes bridge interface)
 npm run dev
 
-# ASI Agent
-cd agents/asi-agent
-python market_analyzer.py
+# ASI Agent with HTTP server
+npm run start:asi-http
 
+# Or ASI Agent in headless mode
+npm run start:asi-headless
 
+# Test bridge functionality
+npm run test:bridge
 
-# Direct RPC calls (no additional setup needed)
-# Uses HEDERA_RPC_URL from .env
+# Test full integration
+npm run test:integration
 ```
+
+## 🌉 Using the PYUSD Bridge
+
+### Step-by-Step Bridge Process
+
+1. **Connect Wallet**: Use RainbowKit to connect MetaMask or compatible wallet
+2. **Switch to Sepolia**: Ensure you're on Ethereum Sepolia network
+3. **Enter Amount**: Specify PYUSD amount to bridge (minimum fees apply)
+4. **Automatic Destination**: Your connected wallet address is used as destination
+5. **Approve & Bridge**: Two-step process with visual feedback
+6. **Receive wPYUSD**: Get wrapped PYUSD on Hedera for betting
+
+### Bridge Features
+- **0.1% Bridge Fee** with transparent calculation
+- **2-5 minute processing time** with real-time status
+- **Automatic network detection** and switching prompts
+- **Balance validation** and insufficient funds warnings
+- **Direct integration** with prediction markets
 
 ## 🔧 Core Components
 
@@ -319,23 +380,30 @@ Modern web interface for:
 ### Available Scripts
 
 ```bash
+# Frontend & Bridge
+npm run dev                  # Start development server with bridge
+npm run build               # Build for production
+npm run start               # Start production server
+
 # Smart Contracts
 npm run compile              # Compile contracts
 npm run deploy:hedera-testnet # Deploy to Hedera testnet
 npm run test                 # Run contract tests
 
-# Frontend
-npm run dev                  # Start development server
-npm run build               # Build for production
-npm run start               # Start production server
+# ASI Agents
+npm run start:asi-http       # Start ASI agent with HTTP server
+npm run start:asi-headless   # Start ASI agent in headless mode
+cd agents/asi-agent && python market_analyzer.py    # Manual agent start
 
-# Direct Contract Integration
+# Bridge & Integration Testing
+npm run test:bridge          # Test PYUSD bridge functionality
 npm run test:frontend       # Test direct contract calls
+npm run test:integration    # Full system integration tests
 npm run debug:frontend      # Debug contract integration
 
-# Agents
-cd agents/asi-agent && python market_analyzer.py    # Start ASI agent
-
+# Cross-Chain Testing
+npm run test:sepolia        # Test Ethereum Sepolia integration
+npm run test:hedera         # Test Hedera testnet integration
 ```
 
 ### Testing
@@ -353,7 +421,15 @@ npm run test:integration
 
 ## 📈 Usage Examples
 
-### 1. Create a Price Market
+### 1. Bridge PYUSD from Ethereum to Hedera
+
+```javascript
+// Frontend bridge interface handles this automatically
+// User connects wallet → selects amount → approves → bridges
+// Result: wPYUSD available on Hedera for betting
+```
+
+### 2. Create a Price Market
 
 ```javascript
 await chimeraContract.createMarket(
@@ -373,19 +449,25 @@ await chimeraContract.createMarket(
 );
 ```
 
-### 2. Delegate to AI Agent
+### 3. Interact with ASI Agent
 
 ```javascript
+// Chat with agent via frontend interface
+// Natural language: "What markets should I bet on?"
+// Agent analyzes markets and provides recommendations
+
+// Or delegate betting authority
 await chimeraContract.delegateToAgent(
   agentAddress,
   ethers.parseUnits("100", 6) // Max 100 PYUSD per bet
 );
 ```
 
-### 3. Manual Betting
+### 4. Manual Betting with wPYUSD
 
 ```javascript
-// Approve PYUSD
+// After bridging PYUSD to Hedera:
+// Approve wPYUSD
 await pyusdContract.approve(chimeraAddress, betAmount);
 
 // Place bet
@@ -402,13 +484,16 @@ await chimeraContract.placeBet(marketId, option, betAmount);
 
 ## 🌟 Key Features
 
-- ✅ **AI-Powered Predictions:** ASI Alliance MeTTa reasoning
-- ✅ **Secure Automation:** Lit Protocol Vincent Skills
-- ✅ **Real-time Data:** Envio HyperIndex integration
-- ✅ **Oracle Integration:** Pyth Network price feeds
-- ✅ **Stable Currency:** PYUSD betting with bridge system
-- ✅ **Low Fees:** Hedera EVM efficiency
-- ✅ **Full Transparency:** On-chain verification via HashScan
+- ✅ **Cross-Chain PYUSD Bridge:** Seamless Ethereum ↔ Hedera transfers
+- ✅ **AI-Powered Predictions:** ASI Alliance MeTTa reasoning with chat interface
+- ✅ **Multi-Chain Wallet Support:** RainbowKit integration with network switching
+- ✅ **Real-time Agent Interaction:** HTTP server for live AI communication
+- ✅ **Oracle Integration:** Pyth Network price feeds for market resolution
+- ✅ **Stable Currency Betting:** PYUSD/wPYUSD with automatic bridging
+- ✅ **Agent Delegation System:** Autonomous betting with user-controlled limits
+- ✅ **Low Fees:** Hedera EVM efficiency for cost-effective trading
+- ✅ **Full Transparency:** On-chain verification and comprehensive audit trails
+- ✅ **Modern UI/UX:** Responsive design with real-time status updates
 
 ## 📞 Support
 
