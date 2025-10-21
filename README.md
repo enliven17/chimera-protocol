@@ -147,7 +147,7 @@ graph TB
 │                 │    │                 │
 │ • MeTTa Logic   │    │ • EVM Contracts │
 │ • Market Analysis│    │ • Agent Kit     │
-│ • Strategy AI   │    │ • Low Fees      │
+│ • Strategy AI   │    │ • Low Fees      │ 
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          └───────────────────────┼───────────────────────┘
@@ -167,7 +167,7 @@ graph TB
                     │                 │
                     │ • Wrapped Token │
                     │ • ERC-20 Compat │
-                    │ • Bridge System │
+                    │ • Bridge System │a
                     └─────────────────┘
 ```
 
