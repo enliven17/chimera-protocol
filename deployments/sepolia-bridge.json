@@ -1,0 +1,10 @@
+{
+  "network": "sepolia",
+  "bridgeAddress": "0xE405053847153e5Eb3984C29c58fa9E5d7de9a25",
+  "pyusdAddress": "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9",
+  "bridgeFee": 10,
+  "feeRecipient": "0x71197e7a1CA5A2cb2AD82432B924F69B1E3dB123",
+  "deploymentTx": "0x3f6b5239ba027f55e4f51d7cf5b39d51d3e43946d5871cd8dae55a83864dedb6",
+  "deployedAt": "2025-10-23T19:31:39.297Z",
+  "deployer": "0x71197e7a1CA5A2cb2AD82432B924F69B1E3dB123"
+}

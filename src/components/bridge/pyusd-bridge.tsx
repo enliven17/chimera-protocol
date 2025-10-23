@@ -25,7 +25,7 @@ import { parseUnits, formatUnits } from "viem";
 // PYUSD contract address for Sepolia testnet
 // Official PayPal USD on Ethereum Sepolia testnet
 const SEPOLIA_PYUSD_ADDRESS = "0xCaC524BcA292aaade2DF8A05cC58F0a65B1B3bB9"; // Real PYUSD on Sepolia
-const BRIDGE_CONTRACT_ADDRESS = "0x3D2d821089f83e0B272Aa2B6921C13e80eEd83ED"; // Real Hedera PYUSD Bridge
+const BRIDGE_CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_ETH_BRIDGE_ADDRESS || "0xE405053847153e5Eb3984C29c58fa9E5d7de9a25"; // PYUSD Bridge on Sepolia
 
 // ERC20 ABI for PYUSD operations
 const ERC20_ABI = [
@@ -62,7 +62,7 @@ const BRIDGE_ABI = [
     ],
     "name": "lockTokens",
     "outputs": [],
-    "stateMutability": "payable",
+    "stateMutability": "nonpayable",
     "type": "function"
   },
   {
@@ -90,9 +90,9 @@ export function PYUSDBridge() {
   const { writeContract, data: hash } = useWriteContract();
   const { isSuccess: isConfirmed, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
   
-  // Separate hook for transfer transaction
-  const { writeContract: writeTransfer, data: transferHash } = useWriteContract();
-  const { isSuccess: isTransferConfirmed } = useWaitForTransactionReceipt({ hash: transferHash });
+  // Bridge transaction state
+  const [bridgeHash, setBridgeHash] = useState<string | undefined>();
+  const { isSuccess: isBridgeConfirmed } = useWaitForTransactionReceipt({ hash: bridgeHash as `0x${string}` });
 
   // Handle approval confirmation
   useEffect(() => {
@@ -102,11 +102,11 @@ export function PYUSDBridge() {
     }
   }, [isConfirmed, currentStep]);
 
-  // Handle transfer confirmation
+  // Handle bridge confirmation
   useEffect(() => {
-    if (isTransferConfirmed && currentStep === 'bridging') {
-      console.log('✅ Transfer confirmed, proceeding with mint...');
-      toast.success('PYUSD transfer confirmed! Processing cross-chain mint...');
+    if (isBridgeConfirmed && currentStep === 'bridging') {
+      console.log('✅ Bridge transaction confirmed, proceeding with mint...');
+      toast.success('PYUSD locked in bridge! Processing cross-chain mint...');
       
       // Continue with the mint process
       setTimeout(async () => {
@@ -118,7 +118,7 @@ export function PYUSDBridge() {
             body: JSON.stringify({
               userAddress: address,
               amount: parseUnits(amount, 6).toString(),
-              sourceTxHash: transferHash
+              sourceTxHash: bridgeHash
             })
           });
           
@@ -139,7 +139,7 @@ export function PYUSDBridge() {
         }
       }, 2000);
     }
-  }, [isTransferConfirmed, currentStep, address, amount, transferHash]);
+  }, [isBridgeConfirmed, currentStep, address, amount, bridgeHash]);
   
   // Get PYUSD balance on Sepolia
   const { data: balance } = useBalance({
@@ -211,49 +211,24 @@ export function PYUSDBridge() {
       
       const amountWei = parseUnits(amount, 6);
       
-      console.log('🌉 Initiating real bridge transaction:', {
+      console.log('🌉 Initiating bridge transaction:', {
         amount: amountWei.toString(),
         destinationAddress: address
       });
       
-      // Step 1: Lock PYUSD on Sepolia by transferring to bridge
-      const bridgeLockAddress = "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87"; // Bridge lock address
+      // Step 1: Call bridge contract lockTokens function
+      toast.success('Locking PYUSD in bridge contract...');
       
-      toast.success('Step 1: Locking PYUSD on Sepolia...');
-      
-      // Check balances before transfer
-      console.log('💸 Pre-transfer checks:', {
+      console.log('🔒 Bridge lock parameters:', {
         userAddress: address,
-        bridgeAddress: bridgeLockAddress,
+        bridgeAddress: BRIDGE_CONTRACT_ADDRESS,
         amount: amountWei.toString(),
         amountFormatted: amount,
-        contract: SEPOLIA_PYUSD_ADDRESS,
-        chainId: chain?.id,
-        isConnected,
-        hasBalance: hasEnoughBalance
+        destinationNetwork: 'hedera-testnet',
+        destinationAddress: address
       });
       
-      // Check current balances
-      console.log('💰 Current balances:', {
-        pyusdBalance: balance ? formatUnits(balance.value, balance.decimals) : 'unknown',
-        pyusdDecimals: balance?.decimals,
-        chainId: chain?.id
-      });
-      
-      // Use separate writeTransfer hook for the transfer transaction
-      console.log('🔄 Requesting transfer transaction signature...');
-      console.log('🔍 Wallet state check:', {
-        isConnected,
-        address,
-        chainId: chain?.id,
-        chainName: chain?.name,
-        expectedChainId: 11155111,
-        writeTransferExists: !!writeTransfer,
-        balanceExists: !!balance,
-        hasEnoughBalance
-      });
-      
-      // Additional checks
+      // Validation checks
       if (!isConnected) {
         throw new Error('Wallet not connected');
       }
@@ -266,125 +241,27 @@ export function PYUSDBridge() {
         throw new Error('No wallet address found');
       }
       
-      // Check ETH balance for gas
-      try {
-        const ethBalance = await window.ethereum?.request({
-          method: 'eth_getBalance',
-          params: [address, 'latest']
-        });
-        
-        console.log('💰 ETH Balance check:', {
-          ethBalanceHex: ethBalance,
-          ethBalanceWei: ethBalance ? parseInt(ethBalance, 16) : 0,
-          ethBalanceEth: ethBalance ? (parseInt(ethBalance, 16) / 1e18).toFixed(6) : '0'
-        });
-        
-        if (!ethBalance || parseInt(ethBalance, 16) === 0) {
-          throw new Error('No ETH balance for gas fees. Please add some Sepolia ETH to your wallet.');
-        }
-      } catch (ethError) {
-        console.warn('Could not check ETH balance:', ethError);
-      }
+      // Call bridge contract lockTokens function
+      console.log('🔄 Calling bridge lockTokens...');
       
-      // Test with a smaller amount first
-      const testAmount = parseUnits("0.01", 6); // 0.01 PYUSD for testing
-      
-      console.log('📋 Transfer parameters:', {
-        contractAddress: SEPOLIA_PYUSD_ADDRESS,
-        bridgeAddress: bridgeLockAddress,
-        originalAmount: amountWei.toString(),
-        testAmount: testAmount.toString(),
-        functionName: 'transfer',
-        userBalance: balance ? formatUnits(balance.value, balance.decimals) : 'unknown'
+      const bridgeTx = await writeContract({
+        address: BRIDGE_CONTRACT_ADDRESS as `0x${string}`,
+        abi: BRIDGE_ABI,
+        functionName: 'lockTokens',
+        args: [amountWei, 'hedera-testnet', address],
       });
       
-      console.log('🚀 Calling writeTransfer...');
-      console.log('🔧 writeTransfer function exists:', typeof writeTransfer);
+      console.log('📤 Bridge transaction hash:', bridgeTx);
       
-      // Try a simple test first
-      try {
-        console.log('🧪 Testing writeTransfer call...');
-        
-        const transferTx = await writeTransfer({
-          address: SEPOLIA_PYUSD_ADDRESS as `0x${string}`,
-          abi: [
-            {
-              "inputs": [{"name": "to", "type": "address"}, {"name": "amount", "type": "uint256"}],
-              "name": "transfer",
-              "outputs": [{"name": "", "type": "bool"}],
-              "stateMutability": "nonpayable",
-              "type": "function"
-            }
-          ],
-          functionName: 'transfer',
-          args: [bridgeLockAddress as `0x${string}`, testAmount],
-        });
-        
-        console.log('📤 writeTransfer returned:', transferTx);
-        console.log('📤 transferTx type:', typeof transferTx);
-        console.log('📤 transferTx value:', transferTx);
-        
-      } catch (writeError) {
-        console.error('❌ writeTransfer threw error:', writeError);
-        throw writeError;
+      if (!bridgeTx) {
+        throw new Error('Bridge transaction failed - no hash returned');
       }
       
-      console.log('✅ Transfer transaction submitted:', transferTx);
+      setBridgeHash(bridgeTx);
+      toast.success(`Bridge transaction submitted! TX: ${bridgeTx.slice(0, 10)}...`);
       
-      console.log('📤 Transfer transaction hash:', transferTx);
-      
-      if (!transferTx) {
-        throw new Error('Transfer transaction failed - no hash returned');
-      }
-      
-      toast.success(`PYUSD transfer submitted! TX: ${transferTx.slice(0, 10)}...`);
-      
-      // Wait for the transfer transaction to be mined
-      // In production, you'd use a proper transaction receipt waiter
-      console.log('⏳ Waiting for transfer confirmation...');
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      console.log('✅ Transfer should be confirmed, proceeding with mint...');
-      
-      // Step 2: Call our Hedera bridge contract to mint wPYUSD
-      // This would normally be done by a bridge operator, but for demo we'll simulate it
-      setTimeout(async () => {
-        try {
-          toast.success('Step 2: Minting wPYUSD on Hedera...');
-          
-          // In a real bridge, this would be called by a bridge operator
-          // For demo, we'll show the user what would happen
-          setCurrentStep('success');
-          toast.success(`Bridge complete! ${amount} PYUSD locked on Sepolia. You should receive ${amount} wPYUSD on Hedera Testnet shortly.`);
-          
-          // Call bridge operator API to mint wPYUSD
-          try {
-            const response = await fetch('/api/bridge/mint', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                userAddress: address,
-                amount: amountWei.toString(),
-                sourceTxHash: transferTx
-              })
-            });
-            
-            if (response.ok) {
-              const result = await response.json();
-              console.log('✅ wPYUSD minted:', result);
-            } else {
-              console.warn('⚠️ Bridge operator call failed, but PYUSD is locked');
-            }
-          } catch (apiError) {
-            console.warn('⚠️ Bridge API unavailable, manual processing required');
-          }
-          
-        } catch (mintError) {
-          console.error('Mint failed:', mintError);
-          toast.error('Cross-chain mint failed');
-          setCurrentStep('approved');
-        }
-      }, 3000);
+      // The useWaitForTransactionReceipt hook will handle the rest
+      // When isBridgeConfirmed becomes true, the mint process will start
       
     } catch (error) {
       console.error('❌ Bridge failed:', error);
@@ -395,10 +272,11 @@ export function PYUSDBridge() {
         errorMessage = 'Transaction cancelled by user';
       } else if (error.message?.includes('insufficient funds')) {
         errorMessage = 'Insufficient ETH for gas fee. Add some Sepolia ETH to your wallet.';
-      } else if (error.message?.includes('Transfer failed')) {
-        errorMessage = 'PYUSD transfer failed. Check your balance and try again.';
-      } else if (error.message?.includes('no hash returned')) {
-        errorMessage = 'Transaction failed to submit. Check your wallet connection.';
+      } else if (error.message?.includes('insufficient allowance')) {
+        errorMessage = 'Insufficient PYUSD allowance. Please approve again.';
+        setCurrentStep('input');
+      } else if (error.message?.includes('ERC20: transfer amount exceeds balance')) {
+        errorMessage = 'Insufficient PYUSD balance.';
       } else {
         errorMessage = `Bridge failed: ${error.message || 'Unknown error'}`;
       }
