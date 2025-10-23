@@ -22,8 +22,10 @@ import { ConnectButton } from '@rainbow-me/rainbowkit';
 import { toast } from "sonner";
 import { parseUnits, formatUnits } from "viem";
 
-// Mock PYUSD contract address for Sepolia (for demo)
-const SEPOLIA_PYUSD_ADDRESS = "0x9D5F12DBe903A0741F675e4Aa4454b2F7A010aB4"; // Using our Hedera address as mock
+// PYUSD contract address for Sepolia testnet
+// Using USDC on Sepolia as a proxy for PYUSD testing since official PYUSD may not be on Sepolia
+// Users can get test USDC from: https://faucet.circle.com/
+const SEPOLIA_PYUSD_ADDRESS = "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238"; // USDC on Sepolia (6 decimals)
 const BRIDGE_CONTRACT_ADDRESS = "0x742d35Cc6634C0532925a3b8D4C9db96590c6C87"; // Mock bridge contract
 
 // ERC20 ABI for PYUSD operations
@@ -83,7 +85,7 @@ export function PYUSDBridge() {
         args: [BRIDGE_CONTRACT_ADDRESS as `0x${string}`, amountWei],
       });
       
-      toast.success('Approval transaction submitted!');
+      toast.success('USDC approval transaction submitted!');
     } catch (error) {
       console.error('Approval failed:', error);
       toast.error('Approval failed');
@@ -103,7 +105,7 @@ export function PYUSDBridge() {
       // Simulate bridge processing
       setTimeout(() => {
         setCurrentStep('success');
-        toast.success(`Successfully bridged ${amount} PYUSD to Hedera!`);
+        toast.success(`Successfully bridged ${amount} USDC to Hedera as wPYUSD!`);
       }, 3000);
       
     } catch (error) {
@@ -144,7 +146,7 @@ export function PYUSDBridge() {
               <p className="text-sm text-gray-300">Ethereum Sepolia</p>
             </div>
             <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-              PYUSD
+              USDC (Test)
             </Badge>
           </div>
           
@@ -184,7 +186,7 @@ export function PYUSDBridge() {
           <div className="flex justify-between text-xs text-gray-300">
             <span>Available Balance:</span>
             <span>
-              {balance ? `${parseFloat(formatUnits(balance.value, balance.decimals)).toFixed(4)} PYUSD` : '0 PYUSD'}
+              {balance ? `${parseFloat(formatUnits(balance.value, balance.decimals)).toFixed(4)} USDC` : '0 USDC'}
             </span>
           </div>
         </div>
@@ -227,7 +229,15 @@ export function PYUSDBridge() {
           <Alert className="border-yellow-500/20 bg-yellow-500/10">
             <AlertTriangle className="h-4 w-4 text-yellow-500" />
             <AlertDescription className="text-yellow-200">
-              Please connect your wallet to use the bridge
+              Please connect your wallet to use the bridge. You'll need test USDC from{' '}
+              <a 
+                href="https://faucet.circle.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline"
+              >
+                Circle Faucet
+              </a>
             </AlertDescription>
           </Alert>
         )}
@@ -245,7 +255,15 @@ export function PYUSDBridge() {
           <Alert className="border-red-500/20 bg-red-500/10">
             <AlertTriangle className="h-4 w-4 text-red-500" />
             <AlertDescription className="text-red-200">
-              Insufficient PYUSD balance
+              Insufficient USDC balance. Get test USDC from{' '}
+              <a 
+                href="https://faucet.circle.com/" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:underline"
+              >
+                Circle Faucet
+              </a>
             </AlertDescription>
           </Alert>
         )}
@@ -258,7 +276,7 @@ export function PYUSDBridge() {
                 <>
                   <Loader2 className="h-5 w-5 text-[#FFE100] animate-spin" />
                   <div>
-                    <p className="font-medium text-white">Approving PYUSD...</p>
+                    <p className="font-medium text-white">Approving USDC...</p>
                     <p className="text-sm text-gray-400">Please confirm the approval in your wallet</p>
                   </div>
                 </>
@@ -268,7 +286,7 @@ export function PYUSDBridge() {
                   <Loader2 className="h-5 w-5 text-[#FFE100] animate-spin" />
                   <div>
                     <p className="font-medium text-white">Processing Bridge...</p>
-                    <p className="text-sm text-gray-400">Your PYUSD is being bridged to Hedera</p>
+                    <p className="text-sm text-gray-400">Your USDC is being bridged to Hedera as wPYUSD</p>
                   </div>
                 </>
               )}
@@ -316,7 +334,7 @@ export function PYUSDBridge() {
                 onClick={resetForm}
                 className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold"
               >
-                Bridge More PYUSD
+                Bridge More USDC
               </Button>
               <Button
                 asChild

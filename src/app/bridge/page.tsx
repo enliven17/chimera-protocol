@@ -29,7 +29,7 @@ export default function BridgePage() {
             <h1 className="text-4xl font-bold">PYUSD Bridge</h1>
           </div>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Bridge your PYUSD from Ethereum/Sepolia to Hedera Testnet and start betting on prediction markets
+            Bridge your USDC from Ethereum Sepolia to Hedera Testnet as wPYUSD and start betting on prediction markets
           </p>
         </div>
 
@@ -57,7 +57,7 @@ export default function BridgePage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Token:</span>
-                <span className="text-white">PYUSD</span>
+                <span className="text-white">USDC (Test)</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-300">Decimals:</span>
