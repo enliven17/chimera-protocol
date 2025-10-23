@@ -42,8 +42,8 @@ export const Footer = () => {
       <div className="max-w-7xl mx-auto flex flex-col items-center gap-4">
         <Link href="/" className="flex items-center gap-2">
           <span className="text-lg sm:text-xl font-bold tracking-tight">
-            <span className="bg-gradient-to-r from-[#fbbf24] via-[#eab308] to-[#ca8a04] bg-clip-text text-transparent">Chimera</span>
-            <span className="text-white">AI</span>
+            <span className="bg-gradient-to-r from-[#fbbf24] via-[#eab308] to-[#ca8a04] bg-clip-text text-transparent">Chi</span>
+            <span className="text-white">mera</span>
           </span>
         </Link>
 
@@ -62,7 +62,7 @@ export const Footer = () => {
         <div className="h-px w-full max-w-5xl bg-gray-800/60 my-2" />
 
         <div className="w-full flex items-center justify-between text-[11px] sm:text-xs text-gray-500">
-          <span>© {new Date().getFullYear()} ChimeraAI</span>
+          <span>© {new Date().getFullYear()} Chimera</span>
           <span className="hidden sm:block">All rights reserved</span>
         </div>
       </div>

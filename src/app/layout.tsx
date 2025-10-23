@@ -7,6 +7,7 @@ import { Bricolage_Grotesque } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { Footer } from "@/components/shared/footer";
+import { FloatingChatbot } from "@/components/shared/floating-chatbot";
 
 const bricolage = Bricolage_Grotesque({ subsets: ["latin"] });
 
@@ -76,6 +77,7 @@ export default async function RootLayout({
                 <main className="flex-1">{children}</main>
                 {pathname === "/" && <Footer />}
               </TermsGuard>
+              <FloatingChatbot />
             </div>
             <Toaster theme="dark" position="top-right" />
           </Web3Provider>

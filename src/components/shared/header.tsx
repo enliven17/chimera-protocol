@@ -17,9 +17,9 @@ export function Header() {
                 {/* Text Only */}
                 <div className="sm:text-3xl text-xl font-black tracking-tight">
                   <span className="bg-gradient-to-r from-[#FFE100] via-[#E6CC00] to-[#CCAA00] bg-clip-text text-transparent">
-                    Chimera
+                    Chi
                   </span>
-                  <span className="text-white">AI</span>
+                  <span className="text-white">mera</span>
                 </div>
               </Link>
               
@@ -37,12 +37,7 @@ export function Header() {
                 >
                   Bridge
                 </Link>
-                <Link 
-                  href="/dashboard" 
-                  className="text-gray-300 hover:text-white transition-colors text-sm font-medium"
-                >
-                  Dashboard
-                </Link>
+
                 <Link 
                   href="/dashboard/my-bets" 
                   className="text-gray-300 hover:text-white transition-colors text-sm font-medium"
