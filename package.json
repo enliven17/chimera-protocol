@@ -21,7 +21,9 @@
     "test:ai": "node scripts/test-ai-integration.js",
     "start:ai-services": "node scripts/start-ai-services.js",
     "create:btc-market": "node scripts/create-btc-150k-market.js",
-    "test:frontend": "node scripts/test-frontend.js"
+    "test:frontend": "node scripts/test-frontend.js",
+    "bridge:mint": "node scripts/bridge-operator.js",
+    "bridge:check": "node scripts/check-bridge-balance.js"
   },
   "dependencies": {
     "@coral-xyz/borsh": "^0.32.1",

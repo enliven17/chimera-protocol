@@ -13,7 +13,7 @@ const isMainnet = process.env.NEXT_PUBLIC_HEDERA_NETWORK === "mainnet";
 const activeChain = isMainnet ? hederaMainnet : hederaTestnet;
 
 const wagmiConfig = getDefaultConfig({
-  appName: "ChimeraAI",
+  appName: "Chimera",
   projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "demo",
   chains: [sepolia, activeChain as any],
   transports: {
