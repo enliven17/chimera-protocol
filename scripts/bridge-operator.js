@@ -112,13 +112,39 @@ async function processManualBridge() {
   }
 }
 
-// Export for use in other scripts
+// API endpoint function
+export async function handleBridgeMintRequest(userAddress, amount, sourceTxHash) {
+  console.log('🌉 API Bridge Request:', { userAddress, amount, sourceTxHash });
+  
+  try {
+    const result = await mintWPYUSDForUser(userAddress, amount, sourceTxHash);
+    return result;
+  } catch (error) {
+    console.error('❌ API Bridge request failed:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+// Export for use in other scripts and API
 export { mintWPYUSDForUser };
 
 // Run if called directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const isMainModule = process.argv[1] === __filename;
+
+if (isMainModule) {
+  console.log('🚀 Starting bridge operator test...');
   processManualBridge()
-    .then(() => process.exit(0))
+    .then(() => {
+      console.log('✅ Bridge operator test completed');
+      process.exit(0);
+    })
     .catch((error) => {
       console.error('❌ Script failed:', error);
       process.exit(1);

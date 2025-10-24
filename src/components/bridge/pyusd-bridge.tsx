@@ -87,12 +87,19 @@ export function PYUSDBridge() {
   const [currentStep, setCurrentStep] = useState<'input' | 'approving' | 'approved' | 'bridging' | 'success'>('input');
   
   // Transaction hooks
-  const { writeContract, data: hash } = useWriteContract();
-  const { isSuccess: isConfirmed, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
+  const { writeContract, data: hash, error: writeError, isPending: isWritePending } = useWriteContract();
+  const { isSuccess: isConfirmed, isLoading: isConfirming, error: receiptError } = useWaitForTransactionReceipt({ hash });
   
-  // Bridge transaction state
-  const [bridgeHash, setBridgeHash] = useState<string | undefined>();
-  const { isSuccess: isBridgeConfirmed } = useWaitForTransactionReceipt({ hash: bridgeHash as `0x${string}` });
+  // Bridge transaction state - use the hash from writeContract
+  const { isSuccess: isBridgeConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  // Handle approval transaction submission
+  useEffect(() => {
+    if (hash && currentStep === 'approving') {
+      console.log('📤 Approval transaction hash:', hash);
+      toast.success(`Approval transaction submitted! TX: ${hash.slice(0, 10)}...`);
+    }
+  }, [hash, currentStep]);
 
   // Handle approval confirmation
   useEffect(() => {
@@ -102,9 +109,44 @@ export function PYUSDBridge() {
     }
   }, [isConfirmed, currentStep]);
 
+  // Handle transaction errors
+  useEffect(() => {
+    if (writeError) {
+      console.error('❌ Transaction error:', writeError);
+      
+      let errorMessage = 'Transaction failed';
+      const errorMsg = (writeError as any)?.message || writeError.toString();
+      
+      if (errorMsg?.includes('User rejected') || errorMsg?.includes('User denied')) {
+        errorMessage = 'Transaction cancelled by user';
+      } else if (errorMsg?.includes('insufficient funds')) {
+        errorMessage = 'Insufficient funds for gas fee';
+      } else {
+        errorMessage = `Transaction failed: ${errorMsg || 'Unknown error'}`;
+      }
+      
+      toast.error(errorMessage);
+      
+      // Reset to appropriate state
+      if (currentStep === 'approving') {
+        setCurrentStep('input');
+      } else if (currentStep === 'bridging') {
+        setCurrentStep('approved');
+      }
+    }
+  }, [writeError, currentStep]);
+
+  // Handle bridge transaction submission
+  useEffect(() => {
+    if (hash && currentStep === 'bridging') {
+      console.log('📤 Bridge transaction hash:', hash);
+      toast.success(`Bridge transaction submitted! TX: ${hash.slice(0, 10)}...`);
+    }
+  }, [hash, currentStep]);
+
   // Handle bridge confirmation
   useEffect(() => {
-    if (isBridgeConfirmed && currentStep === 'bridging') {
+    if (isBridgeConfirmed && currentStep === 'bridging' && hash) {
       console.log('✅ Bridge transaction confirmed, proceeding with mint...');
       toast.success('PYUSD locked in bridge! Processing cross-chain mint...');
       
@@ -118,7 +160,7 @@ export function PYUSDBridge() {
             body: JSON.stringify({
               userAddress: address,
               amount: parseUnits(amount, 6).toString(),
-              sourceTxHash: bridgeHash
+              sourceTxHash: hash
             })
           });
           
@@ -128,18 +170,19 @@ export function PYUSDBridge() {
             setCurrentStep('success');
             toast.success(`Bridge complete! You received ${amount} wPYUSD on Hedera Testnet.`);
           } else {
-            console.warn('⚠️ Bridge operator call failed, but PYUSD is locked');
+            const errorData = await response.json();
+            console.warn('⚠️ Bridge operator call failed:', errorData);
             setCurrentStep('success');
             toast.success(`PYUSD locked successfully! wPYUSD will be minted shortly.`);
           }
         } catch (apiError) {
-          console.warn('⚠️ Bridge API unavailable, manual processing required');
+          console.warn('⚠️ Bridge API unavailable, manual processing required:', apiError);
           setCurrentStep('success');
           toast.success(`PYUSD locked successfully! Contact support for manual processing.`);
         }
       }, 2000);
     }
-  }, [isBridgeConfirmed, currentStep, address, amount, bridgeHash]);
+  }, [isBridgeConfirmed, currentStep, address, amount, hash]);
   
   // Get PYUSD balance on Sepolia
   const { data: balance } = useBalance({
@@ -175,7 +218,7 @@ export function PYUSDBridge() {
       });
       
       // This should trigger the wallet popup
-      const txHash = await writeContract({
+      writeContract({
         address: SEPOLIA_PYUSD_ADDRESS as `0x${string}`,
         abi: ERC20_ABI,
         functionName: 'approve',
@@ -191,12 +234,14 @@ export function PYUSDBridge() {
       console.error('Approval failed:', error);
       
       // Better error handling
-      if (error.message?.includes('User rejected')) {
+      const errorMsg = (error as any)?.message || error?.toString() || 'Unknown error';
+      
+      if (errorMsg.includes('User rejected')) {
         toast.error('Transaction cancelled by user');
-      } else if (error.message?.includes('insufficient funds')) {
+      } else if (errorMsg.includes('insufficient funds')) {
         toast.error('Insufficient funds for gas fee');
       } else {
-        toast.error('Approval failed: ' + (error.message || 'Unknown error'));
+        toast.error('Approval failed: ' + errorMsg);
       }
       
       setCurrentStep('input');
@@ -244,41 +289,35 @@ export function PYUSDBridge() {
       // Call bridge contract lockTokens function
       console.log('🔄 Calling bridge lockTokens...');
       
-      const bridgeTx = await writeContract({
+      writeContract({
         address: BRIDGE_CONTRACT_ADDRESS as `0x${string}`,
         abi: BRIDGE_ABI,
         functionName: 'lockTokens',
         args: [amountWei, 'hedera-testnet', address],
       });
       
-      console.log('📤 Bridge transaction hash:', bridgeTx);
-      
-      if (!bridgeTx) {
-        throw new Error('Bridge transaction failed - no hash returned');
-      }
-      
-      setBridgeHash(bridgeTx);
-      toast.success(`Bridge transaction submitted! TX: ${bridgeTx.slice(0, 10)}...`);
-      
-      // The useWaitForTransactionReceipt hook will handle the rest
-      // When isBridgeConfirmed becomes true, the mint process will start
+      // The hash will be available in the `hash` variable from useWriteContract
+      // We'll wait for it in the useEffect
+      // Transaction will be handled by useWriteContract hook
+      toast.success('Bridge transaction submitted! Waiting for confirmation...');
       
     } catch (error) {
       console.error('❌ Bridge failed:', error);
       
       let errorMessage = 'Bridge transaction failed';
+      const errorMsg = (error as any)?.message || error?.toString() || 'Unknown error';
       
-      if (error.message?.includes('User rejected') || error.message?.includes('User denied')) {
+      if (errorMsg.includes('User rejected') || errorMsg.includes('User denied')) {
         errorMessage = 'Transaction cancelled by user';
-      } else if (error.message?.includes('insufficient funds')) {
+      } else if (errorMsg.includes('insufficient funds')) {
         errorMessage = 'Insufficient ETH for gas fee. Add some Sepolia ETH to your wallet.';
-      } else if (error.message?.includes('insufficient allowance')) {
+      } else if (errorMsg.includes('insufficient allowance')) {
         errorMessage = 'Insufficient PYUSD allowance. Please approve again.';
         setCurrentStep('input');
-      } else if (error.message?.includes('ERC20: transfer amount exceeds balance')) {
+      } else if (errorMsg.includes('ERC20: transfer amount exceeds balance')) {
         errorMessage = 'Insufficient PYUSD balance.';
       } else {
-        errorMessage = `Bridge failed: ${error.message || 'Unknown error'}`;
+        errorMessage = `Bridge failed: ${errorMsg}`;
       }
       
       toast.error(errorMessage);
@@ -489,7 +528,7 @@ export function PYUSDBridge() {
               className="w-full bg-gray-600 text-gray-300 cursor-not-allowed"
             >
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Waiting for Approval...
+              {isWritePending ? 'Submitting...' : isConfirming ? 'Confirming...' : 'Waiting for Approval...'}
             </Button>
           )}
           
@@ -508,7 +547,7 @@ export function PYUSDBridge() {
               className="w-full bg-gray-600 text-gray-300 cursor-not-allowed"
             >
               <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              Bridging in Progress...
+              {isWritePending ? 'Submitting...' : isConfirming ? 'Confirming...' : 'Processing...'}
             </Button>
           )}
           

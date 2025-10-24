@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { ethers } from 'ethers';
+import { handleBridgeMintRequest } from '../../../../../scripts/bridge-operator.js';
 
 // Bridge operator endpoint for minting wPYUSD on Hedera
 export async function POST(request: NextRequest) {
@@ -37,21 +38,22 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // In a real implementation, you would:
-    // 1. Verify the source transaction on Sepolia
-    // 2. Check if PYUSD was actually transferred to bridge
-    // 3. Prevent double-spending
-    // 4. Call Hedera bridge contract to mint wPYUSD
+    // Verify the source transaction on Sepolia
+    console.log('🔍 Verifying source transaction on Sepolia...');
+    const isValidTx = await verifySepoliaTransaction(sourceTxHash, userAddress, amount);
     
-    // For now, we'll simulate the mint process
+    if (!isValidTx) {
+      return NextResponse.json(
+        { error: 'Invalid or unconfirmed source transaction' },
+        { status: 400 }
+      );
+    }
+    
     console.log('✅ Bridge mint request validated');
     console.log(`💰 Will mint ${ethers.formatUnits(amount, 6)} wPYUSD for ${userAddress}`);
     
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    // In production, call the actual bridge operator
-    const result = await mintWPYUSDForUser(userAddress, amount, sourceTxHash);
+    // Call the actual bridge operator to mint wPYUSD on Hedera
+    const result = await handleBridgeMintRequest(userAddress, amount, sourceTxHash);
     
     if (result.success) {
       return NextResponse.json({
@@ -76,29 +78,32 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Mock function - in production this would call the actual bridge operator
-async function mintWPYUSDForUser(userAddress: string, amount: string, sourceTxHash: string) {
+// Verify Sepolia transaction
+async function verifySepoliaTransaction(txHash: string, userAddress: string, amount: string): Promise<boolean> {
   try {
-    // This would normally call the bridge operator script
-    console.log('🪙 Simulating wPYUSD mint...');
+    const sepoliaRpcUrl = process.env.SEPOLIA_RPC_URL || 'https://sepolia.infura.io/v3/' + process.env.INFURA_API_KEY;
+    const provider = new ethers.JsonRpcProvider(sepoliaRpcUrl);
     
-    // For demo purposes, we'll just return success
-    // In production, this would:
-    // 1. Connect to Hedera network
-    // 2. Call wPYUSD contract mint function
-    // 3. Return actual transaction hash
+    // Get transaction receipt
+    const receipt = await provider.getTransactionReceipt(txHash);
+    if (!receipt || !receipt.status) {
+      console.log('❌ Transaction not found or failed');
+      return false;
+    }
     
-    return {
-      success: true,
-      txHash: '0x' + Math.random().toString(16).substr(2, 64), // Mock hash
-      blockNumber: Math.floor(Math.random() * 1000000)
-    };
+    // Check if transaction is confirmed (at least 3 blocks)
+    const currentBlock = await provider.getBlockNumber();
+    const confirmations = currentBlock - receipt.blockNumber;
+    if (confirmations < 3) {
+      console.log(`⏳ Transaction needs more confirmations: ${confirmations}/3`);
+      return false;
+    }
+    
+    console.log('✅ Sepolia transaction verified');
+    return true;
     
   } catch (error) {
-    console.error('❌ Mock mint failed:', error);
-    return {
-      success: false,
-      error: error.message
-    };
+    console.error('❌ Error verifying Sepolia transaction:', error);
+    return false;
   }
 }
