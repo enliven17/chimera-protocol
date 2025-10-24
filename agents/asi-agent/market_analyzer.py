@@ -79,25 +79,22 @@ class RateLimiter:
         self.requests[user_id].append(now)
         return True
 
-# MeTTa reasoning engine (Hyperon runtime with graceful fallback)
+# MeTTa reasoning engine (Custom implementation with symbolic AI)
 class MeTTaReasoner:
-    """MeTTa-based reasoning engine for market analysis"""
+    """Advanced MeTTa-based reasoning engine for market analysis"""
 
     def __init__(self):
-        self.metta = None
+        self.metta_available = False
         try:
-            # Lazy import to avoid hard crash if hyperon is not available
-            from hyperon import MeTTa  # type: ignore
-            self.metta = MeTTa()
-            # Seed a minimal knowledge base for contrarian reasoning
-            self.metta.run('''
-                (:- (contrarian BUY_B RATIO)
-                    (> RATIO 0.7))
-                (:- (contrarian BUY_A RATIO)
-                    (> (- 1 RATIO) 0.7))
-            ''')
-        except Exception:
-            self.metta = None
+            # Use our custom MeTTa engine
+            from metta_engine import MeTTaReasoner as CustomMeTTaReasoner
+            self.metta_engine = CustomMeTTaReasoner()
+            self.metta_available = True
+            print("✅ Custom MeTTa reasoning engine loaded with 32+ rules")
+        except Exception as e:
+            print(f"⚠️ Custom MeTTa engine not available: {e}")
+            self.metta_engine = None
+            self.metta_available = False
 
     def _fallback_analysis(self, market_data: Dict) -> Dict:
         total_volume = market_data.get("totalPool", 0)
@@ -134,33 +131,16 @@ class MeTTaReasoner:
     def analyze_market_data(self, market_data: Dict) -> Dict:
         """Analyze market data using MeTTa rules; fallback to heuristic if needed."""
 
-        option_a_ratio = float(market_data.get("optionARatio", 0.5))
-
-        if not self.metta:
-            return self._fallback_analysis(market_data)
-
-        try:
-            # Evaluate MeTTa predicates for contrarian strategy
-            result_buy_b = self.metta.run(f"(contrarian BUY_B {option_a_ratio})")
-            result_buy_a = self.metta.run(f"(contrarian BUY_A {option_a_ratio})")
-
-            recommendation = "HOLD"
-            confidence = 0.5
-            if result_buy_b:
-                recommendation = "BUY_B"
-                confidence = min(0.9, max(0.6, (option_a_ratio - 0.5) * 2))
-            elif result_buy_a:
-                recommendation = "BUY_A"
-                inverted = 1 - option_a_ratio
-                confidence = min(0.9, max(0.6, (inverted - 0.5) * 2))
-
-            analysis = self._fallback_analysis(market_data)
-            analysis["recommendation"] = recommendation
-            analysis["confidence"] = float(confidence)
-            analysis["metta_analysis"] = "Hyperon MeTTa rules applied for contrarian detection"
-            return analysis
-        except Exception:
-            return self._fallback_analysis(market_data)
+        if self.metta_engine and self.metta_available:
+            try:
+                # Use custom MeTTa reasoning engine
+                return self.metta_engine.analyze_market(market_data)
+                
+            except Exception as e:
+                print(f"Custom MeTTa analysis error: {e}")
+        
+        # Fallback to heuristic analysis
+        return self._fallback_analysis(market_data)
 
 @dataclass
 class MarketData:

@@ -60,8 +60,8 @@ export function useDirectContract() {
         contract.getActiveMarkets()
       ]);
 
-      const transformedAllMarkets = allMarketsData.map(transformMarket);
-      const transformedActiveMarkets = activeMarketsData.map(transformMarket);
+      const transformedAllMarkets = allMarketsData.map(transformMarket).filter(market => market.id !== '3');
+      const transformedActiveMarkets = activeMarketsData.map(transformMarket).filter(market => market.id !== '3');
 
       setAllMarkets(transformedAllMarkets);
       setActiveMarkets(transformedActiveMarkets);
@@ -80,6 +80,11 @@ export function useDirectContract() {
 
   const getMarket = async (marketId: string) => {
     if (!CONTRACT_ADDRESS) {
+      return null;
+    }
+
+    // Filter out market ID 3 (duplicate ETH market)
+    if (marketId === '3') {
       return null;
     }
 

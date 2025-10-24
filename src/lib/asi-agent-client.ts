@@ -1,10 +1,11 @@
-// ASI Agent API client for MeTTa reasoning and market analysis
+// ASI Agent API client for local MeTTa reasoning and Hyperon symbolic AI
 export class ASIAgentClient {
   private baseUrl: string;
   private apiKey?: string;
 
   constructor(baseUrl?: string, apiKey?: string) {
-    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_ASI_AGENT_ENDPOINT || 'http://localhost:8001';
+    // Use local agent by default, fallback to localhost:8001
+    this.baseUrl = baseUrl || process.env.NEXT_PUBLIC_LOCAL_AGENT_URL || 'http://localhost:8001';
     this.apiKey = apiKey || process.env.NEXT_PUBLIC_ASI_AGENT_API_KEY;
   }
 
@@ -18,16 +19,22 @@ export class ASIAgentClient {
       headers['Authorization'] = `Bearer ${this.apiKey}`;
     }
 
-    const response = await fetch(`${this.baseUrl}${endpoint}`, {
-      ...options,
-      headers,
-    });
+    try {
+      const response = await fetch(`${this.baseUrl}${endpoint}`, {
+        ...options,
+        headers,
+        timeout: 10000, // 10 second timeout
+      });
 
-    if (!response.ok) {
-      throw new Error(`ASI Agent API error: ${response.status} ${response.statusText}`);
+      if (!response.ok) {
+        throw new Error(`Local MeTTa Agent API error: ${response.status} ${response.statusText}`);
+      }
+
+      return response.json();
+    } catch (error) {
+      console.error(`Error connecting to local MeTTa agent at ${this.baseUrl}:`, error);
+      throw new Error(`Local MeTTa agent not available. Please start the agent with: python agents/asi-agent/simple_http_server.py`);
     }
-
-    return response.json();
   }
 
   // Get agent status and health

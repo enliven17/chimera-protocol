@@ -29,7 +29,7 @@ export function FloatingChatbot() {
     <>
       {/* Floating Button */}
       {!isOpen && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-4 right-4 z-50">
           <Button
             onClick={toggleOpen}
             className="h-14 w-14 rounded-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black shadow-lg hover:shadow-xl transition-all duration-300 animate-pulse"
@@ -41,7 +41,7 @@ export function FloatingChatbot() {
 
       {/* Floating Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50">
+        <div className="fixed bottom-2 right-2 z-50">
           <div 
             className={`bg-gradient-to-br from-[#1A1F2C] to-[#151923] border border-gray-800/50 rounded-lg shadow-2xl transition-all duration-300 ${
               isMinimized 
@@ -53,7 +53,7 @@ export function FloatingChatbot() {
             <div className="flex items-center justify-between p-3 border-b border-gray-800/50">
               <div className="flex items-center space-x-2">
                 <MessageCircle className="h-5 w-5 text-[#FFE100]" />
-                <span className="text-lg font-semibold text-white">Chimera Assistant</span>
+                <span className="text-lg font-semibold text-white">ASI Agent</span>
               </div>
               <div className="flex items-center space-x-1">
                 <Button
@@ -81,8 +81,20 @@ export function FloatingChatbot() {
 
             {/* Content - Only AI Chat */}
             {!isMinimized && (
-              <div className="h-[calc(100%-4rem)]">
-                <ASIChatContent />
+              <div className="h-[calc(100%-4rem)] flex flex-col">
+                <div className="flex-1 min-h-0">
+                  <ASIChatContent />
+                </div>
+                
+                {/* Agent Info - Compact */}
+                <div className="px-2 py-1 bg-purple-900/10 border-t border-purple-800/20">
+                  <div className="flex items-center justify-center">
+                    <div className="text-purple-400 text-xs flex items-center space-x-1">
+                      <MessageCircle className="h-2 w-2" />
+                      <span>Agent: agent1q0xt9x...flzn</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>

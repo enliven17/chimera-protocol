@@ -19,6 +19,27 @@ import {
 import { useASIAgentStatus } from '@/hooks/useASIAgent';
 import { toast } from 'sonner';
 
+// Enhanced markdown renderer for chat messages
+function renderMarkdown(text: string) {
+  return text
+    // Fix broken markdown first
+    .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-blue-300">$1</strong>') // Bold
+    .replace(/\*(.*?)\*/g, '<em class="italic text-gray-300">$1</em>') // Italic
+    .replace(/`(.*?)`/g, '<code class="bg-gray-700 text-green-400 px-1 rounded text-xs font-mono">$1</code>') // Code
+    // Handle bullet points with emojis
+    .replace(/^([🔍🎯📊🧠💡⚠️📈🥇💰📅⏰✅❌🚀📋🔄💭⚖️]) (.*$)/gim, '<div class="flex items-start mb-1"><span class="mr-2">$1</span><span>$2</span></div>')
+    // Handle regular bullet points
+    .replace(/^• (.*$)/gim, '<div class="flex items-start mb-1"><span class="text-blue-400 mr-2">•</span><span>$1</span></div>')
+    // Handle numbered lists
+    .replace(/^(\d+)\. (.*$)/gim, '<div class="flex items-start mb-1"><span class="text-blue-400 mr-2 font-bold">$1.</span><span>$2</span></div>')
+    // Handle section headers (lines ending with :)
+    .replace(/^([^:\n]+):$/gim, '<div class="font-semibold text-blue-300 mt-2 mb-1">$1:</div>')
+    // Handle double line breaks
+    .replace(/\n\n/g, '<br><br>')
+    // Handle single line breaks
+    .replace(/\n/g, '<br>');
+}
+
 interface ChatMessage {
   id: string;
   type: 'user' | 'agent';
@@ -41,7 +62,17 @@ export function ASIChat({ className }: ASIChatProps) {
     {
       id: '1',
       type: 'agent',
-      content: 'Hello! I\'m the Chimera ASI Agent. I can help you analyze markets, provide betting recommendations, and answer questions about prediction markets. Try asking me about specific markets or say "analyze all markets".',
+      content: `🧠 Hello! I'm the **ChimeraProtocol Local ASI Agent** with MeTTa reasoning!
+
+🖥️ **Running locally** with advanced symbolic AI capabilities.
+
+**Try these commands**:
+• "analyze markets" - Get MeTTa market analysis
+• "recommend bets" - Get AI recommendations
+• "health" - Check agent status
+• "help" - See all commands
+
+**Status**: 🟢 Local MeTTa engine ready`,
       timestamp: new Date(),
     }
   ]);
@@ -74,7 +105,12 @@ export function ASIChat({ className }: ASIChatProps) {
     setIsLoading(true);
 
     try {
-      // Send message to ASI Agent
+      console.log('🚀 Sending message to local MeTTa agent:', userMessage.content);
+      
+      // Send message to ASI Agent with enhanced context
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+      
       const response = await fetch('/api/asi-agent/chat', {
         method: 'POST',
         headers: {
@@ -83,24 +119,54 @@ export function ASIChat({ className }: ASIChatProps) {
         body: JSON.stringify({
           message: userMessage.content,
           conversationId: 'web-chat',
+          sessionId: `session-${Date.now()}`,
+          userId: 'web-user',
+          context: {
+            platform: 'chimera-web',
+            timestamp: new Date().toISOString(),
+            userAgent: navigator.userAgent
+          }
         }),
+        signal: controller.signal,
       });
+      
+      clearTimeout(timeoutId);
+      console.log('📡 Response received:', response.status, response.statusText);
 
       if (!response.ok) {
-        throw new Error('Failed to get response from ASI Agent');
+        throw new Error(`Failed to get response from ASI Agent: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
+      console.log('📦 Response data:', data);
+
+      // If it's a connection error, show local setup instructions
+      if (data.error && data.setup_instructions) {
+        const agentMessage: ChatMessage = {
+          id: (Date.now() + 1).toString(),
+          type: 'agent',
+          content: data.message,
+          timestamp: new Date(),
+        };
+
+        setMessages(prev => [...prev, agentMessage]);
+        
+        // Show setup instructions
+        toast.error('Local MeTTa agent not running. Check setup instructions in chat.');
+        
+        return;
+      }
 
       const agentMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'agent',
-        content: data.message || 'I received your message but couldn\'t process it properly.',
+        content: data.message || 'Response received from local MeTTa agent.',
         timestamp: new Date(),
         analysis: data.analysis,
       };
 
       setMessages(prev => [...prev, agentMessage]);
+      console.log('✅ Message processed successfully:', data);
 
     } catch (error) {
       console.error('Error sending message to ASI Agent:', error);
@@ -108,12 +174,33 @@ export function ASIChat({ className }: ASIChatProps) {
       const errorMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),
         type: 'agent',
-        content: 'Sorry, I\'m having trouble connecting right now. Please try again later or check if the ASI Agent is running.',
+        content: `🔌 I'm having trouble connecting to the local MeTTa agent.
+
+🧠 **ChimeraProtocol Local ASI Agent** uses MeTTa reasoning and Hyperon symbolic AI!
+
+**To start the local agent**:
+1. Open terminal in project root
+2. cd agents/asi-agent/
+3. python simple_http_server.py
+
+**Features when running**:
+• 🔬 MeTTa symbolic reasoning
+• 🧮 Hyperon logical inference  
+• 🎯 Advanced contrarian analysis
+• 💡 Real-time market insights
+
+**Try these commands once running**:
+• "analyze markets" - Get MeTTa analysis
+• "recommend bets" - Get AI recommendations  
+• "explain strategy" - Learn contrarian approach
+• "health" - Check agent status
+
+The local agent provides more advanced reasoning than cloud alternatives!`,
         timestamp: new Date(),
       };
 
       setMessages(prev => [...prev, errorMessage]);
-      toast.error('Failed to connect to ASI Agent');
+      toast.error('Local MeTTa agent not running. Check setup instructions.');
     } finally {
       setIsLoading(false);
     }
@@ -200,7 +287,14 @@ export function ASIChat({ className }: ASIChatProps) {
                       <User className="h-4 w-4 mt-0.5 text-white flex-shrink-0" />
                     )}
                     <div className="flex-1">
-                      <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                      <div 
+                        className="text-sm leading-relaxed"
+                        dangerouslySetInnerHTML={{ __html: renderMarkdown(message.content) }}
+                        style={{ 
+                          wordBreak: 'break-word',
+                          overflowWrap: 'break-word'
+                        }}
+                      />
                       
                       {/* Show analysis results if available */}
                       {message.analysis && message.analysis.length > 0 && (
@@ -311,11 +405,38 @@ export function ASIChat({ className }: ASIChatProps) {
             variant="outline"
             size="sm"
             onClick={() => setInputValue('health')}
-            className="text-xs border-gray-700 text-gray-300 hover:text-white"
+            className="text-xs border-green-600 text-green-400 hover:text-white hover:border-green-500"
             disabled={isLoading}
           >
-            Agent Status
+            🔍 Check Status
           </Button>
+        </div>
+
+        {/* Local Agent Info */}
+        <div className="mt-2 p-3 bg-purple-900/20 border border-purple-800/30 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Bot className="h-4 w-4 text-purple-400" />
+              <span className="text-sm text-purple-300">
+                Local MeTTa + Hyperon reasoning engine
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Badge className={getStatusColor()}>
+                {getStatusText()}
+              </Badge>
+              {agentStatus?.status !== 'healthy' && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => toast.info('Run: python agents/asi-agent/simple_http_server.py')}
+                  className="text-purple-400 hover:text-purple-300 text-xs"
+                >
+                  Setup Help
+                </Button>
+              )}
+            </div>
+          </div>
         </div>
       </CardContent>
     </Card>

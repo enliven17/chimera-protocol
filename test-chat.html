@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Local MeTTa Agent</title>
+</head>
+<body>
+    <h1>Test Local MeTTa Agent</h1>
+    <input type="text" id="messageInput" placeholder="Type your message..." style="width: 300px;">
+    <button onclick="sendMessage()">Send</button>
+    <div id="response" style="margin-top: 20px; padding: 10px; border: 1px solid #ccc;"></div>
+
+    <script>
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const responseDiv = document.getElementById('response');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            responseDiv.innerHTML = 'Sending...';
+            
+            try {
+                console.log('Sending message:', message);
+                
+                const response = await fetch('/api/asi-agent/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: message,
+                        conversationId: 'test-chat',
+                        sessionId: 'test-session',
+                        userId: 'test-user'
+                    }),
+                });
+                
+                console.log('Response status:', response.status);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                responseDiv.innerHTML = `
+                    <strong>Response:</strong><br>
+                    <pre>${JSON.stringify(data, null, 2)}</pre>
+                `;
+                
+                input.value = '';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                responseDiv.innerHTML = `<strong>Error:</strong> ${error.message}`;
+            }
+        }
+        
+        // Allow Enter key to send message
+        document.getElementById('messageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    </script>
+</body>
+</html>

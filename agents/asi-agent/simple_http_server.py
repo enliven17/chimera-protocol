@@ -133,43 +133,43 @@ def get_real_market_data():
         
         markets = []
         
-        # Get multiple markets (we now have market 1 and 2)
+        # Get multiple markets (we have market 1 and 2)
         for market_id in [1, 2]:
             try:
                 market_data = contract.functions.getMarket(market_id).call()
+                
+                # Parse the market data tuple
+                (id, title, description, optionA, optionB, category, creator, 
+                 createdAt, endTime, minBet, maxBet, status, outcome, resolved, 
+                 totalOptionAShares, totalOptionBShares, totalPool) = market_data
+                
+                # Calculate ratios
+                total_shares = totalOptionAShares + totalOptionBShares
+                option_a_ratio = float(totalOptionAShares) / float(total_shares) if total_shares > 0 else 0.5
+                option_b_ratio = float(totalOptionBShares) / float(total_shares) if total_shares > 0 else 0.5
             
-            # Parse the market data tuple
-            (id, title, description, optionA, optionB, category, creator, 
-             createdAt, endTime, minBet, maxBet, status, outcome, resolved, 
-             totalOptionAShares, totalOptionBShares, totalPool) = market_data
-            
-            # Calculate ratios
-            total_shares = totalOptionAShares + totalOptionBShares
-            option_a_ratio = float(totalOptionAShares) / float(total_shares) if total_shares > 0 else 0.5
-            option_b_ratio = float(totalOptionBShares) / float(total_shares) if total_shares > 0 else 0.5
-            
-            market = {
-                'id': int(id),
-                'title': title,
-                'description': description,
-                'optionA': optionA,
-                'optionB': optionB,
-                'question': title,
-                'optionARatio': option_a_ratio,
-                'optionBRatio': option_b_ratio,
-                'totalVolume': float(w3.from_wei(totalPool, 'ether')),
-                'totalOptionAShares': float(w3.from_wei(totalOptionAShares, 'ether')),
-                'totalOptionBShares': float(w3.from_wei(totalOptionBShares, 'ether')),
-                'status': 'resolved' if resolved else 'active',
-                'resolved': resolved,
-                'outcome': int(outcome),
-                'endTime': int(endTime),
-                'creator': creator,
-                'category': int(category),
-                'lastUpdate': datetime.now().isoformat(),
-                'hasActivity': total_shares > 0
-            }
-            
+                market = {
+                    'id': int(id),
+                    'title': title,
+                    'description': description,
+                    'optionA': optionA,
+                    'optionB': optionB,
+                    'question': title,
+                    'optionARatio': option_a_ratio,
+                    'optionBRatio': option_b_ratio,
+                    'totalVolume': float(w3.from_wei(totalPool, 'ether')),
+                    'totalOptionAShares': float(w3.from_wei(totalOptionAShares, 'ether')),
+                    'totalOptionBShares': float(w3.from_wei(totalOptionBShares, 'ether')),
+                    'status': 'resolved' if resolved else 'active',
+                    'resolved': resolved,
+                    'outcome': int(outcome),
+                    'endTime': int(endTime),
+                    'creator': creator,
+                    'category': int(category),
+                    'lastUpdate': datetime.now().isoformat(),
+                    'hasActivity': total_shares > 0
+                }
+                
                 markets.append(market)
                 print(f"✅ Loaded real market {market_id}: {title}")
                 print(f"   Pool: {market['totalVolume']:.2f} PYUSD")
@@ -229,6 +229,34 @@ def get_real_market_data():
                 'error': str(e)
             }
         ]
+
+def get_time_remaining_text(end_time):
+    """Calculate and format time remaining until market ends"""
+    try:
+        if not end_time or end_time == 0:
+            return "Unknown"
+        
+        current_time = datetime.now().timestamp()
+        time_diff = end_time - current_time
+        
+        if time_diff <= 0:
+            return "Market ended"
+        
+        days = int(time_diff // 86400)
+        hours = int((time_diff % 86400) // 3600)
+        minutes = int((time_diff % 3600) // 60)
+        
+        if days > 0:
+            return f"~{days} days, {hours}h"
+        elif hours > 0:
+            return f"~{hours}h {minutes}m"
+        elif minutes > 0:
+            return f"~{minutes} minutes"
+        else:
+            return "< 1 minute"
+            
+    except Exception as e:
+        return "Unknown"
 
 def get_market_question(market_id):
     """Generate realistic market questions based on ID"""
@@ -448,13 +476,16 @@ def analyze_market_with_ai(market_data):
         if end_time > 0:
             time_remaining = end_time - datetime.now().timestamp()
             days_remaining = time_remaining / 86400
+            time_text = get_time_remaining_text(end_time)
             
             if days_remaining < 1:
-                analysis['reasoning'] += " ⏰ Less than 24h remaining - time pressure."
+                analysis['reasoning'] += f" ⏰ {time_text} remaining - time pressure."
                 if analysis['riskLevel'] == 'low':
                     analysis['riskLevel'] = 'medium'
             elif days_remaining > 30:
-                analysis['reasoning'] += f" 📅 {days_remaining:.0f} days remaining - plenty of time."
+                analysis['reasoning'] += f" 📅 {time_text} remaining - plenty of time."
+            else:
+                analysis['reasoning'] += f" ⏰ {time_text} remaining."
         
         # Add detailed analysis factors
         bias_strength = abs(option_a_ratio - 0.5) * 2
@@ -645,7 +676,7 @@ def betting_recommendation():
             'confidence': 0.8,
             'reasoning': 'Strong contrarian opportunity detected. The crowd is heavily biased toward Option B (65% of volume), but our MeTTa analysis suggests Option A has higher probability of success.',
             'riskWarnings': [
-                'Market closes in 24 hours - limited time for position adjustment',
+                f'Market closes in {get_time_remaining_text(market_data.get("endTime", 0))} - plan accordingly',
                 'High volatility expected due to upcoming events',
                 'Consider position sizing based on your risk tolerance'
             ],
@@ -721,29 +752,29 @@ def process_chat_message(message: str) -> str:
         try:
             markets = get_real_market_data()
             active_count = len([m for m in markets if m.get('status') == 'active'])
-            return f"""🤖 **Chimera ASI Agent Status: Online**
+            return f"""🤖 Chimera ASI Agent Status: Online
 
-**📊 Real-Time Market Status:**
+📊 Real-Time Market Status:
 • {len(markets)} total markets detected
 • {active_count} currently active
 • Last update: {datetime.now().strftime('%H:%M:%S')}
 
-**🧠 AI Capabilities:**
-🔍 **Live Market Analysis**: Real contract data analysis
-📊 **Contrarian Detection**: Find crowd bias opportunities  
-🎯 **Smart Recommendations**: AI-powered betting suggestions
-📈 **Performance Tracking**: Real success rate monitoring
+🧠 AI Capabilities:
+🔍 Live Market Analysis: Real contract data analysis
+📊 Contrarian Detection: Find crowd bias opportunities  
+🎯 Smart Recommendations: AI-powered betting suggestions
+📈 Performance Tracking: Real success rate monitoring
 
-**💡 Try asking:**
+💡 Try asking:
 • "analyze active markets"
 • "what should I bet on?"
 • "show me contrarian opportunities"
 
 Ready to analyze real market data!"""
         except Exception as e:
-            return f"""🤖 **Chimera ASI Agent Status: Online**
+            return f"""🤖 Chimera ASI Agent Status: Online
 
-⚠️ **Connection Issue**: {str(e)}
+⚠️ Connection Issue: {str(e)}
 
 I'm running but having trouble connecting to market data. Please check:
 • Contract address configuration
@@ -762,15 +793,15 @@ Still available for general analysis and recommendations!"""
             buy_opportunities = len([a for a in analyses if a['recommendation'] in ['BUY_A', 'BUY_B']])
             avg_confidence = sum(a['confidence'] for a in analyses) / len(analyses) if analyses else 0
             
-            result = f"""🔍 **Live Market Analysis**
+            result = f"""🔍 Live Market Analysis
 
-**📊 Current Market Status:**
+📊 Current Market Status:
 • {len(markets)} active markets detected
 • {buy_opportunities} showing betting opportunities  
 • Average AI confidence: {avg_confidence:.1%}
 • Last update: {datetime.now().strftime('%H:%M:%S')}
 
-**🎯 Top Opportunities:**
+🎯 Top Opportunities:
 """
             
             # Show top 3 opportunities
@@ -868,7 +899,7 @@ Based on real-time AI analysis:
 
 **⚖️ Risk Factors**:
 • Volume: ${market['totalVolume']:,}
-• Time remaining: ~24 hours
+• Time remaining: {get_time_remaining_text(market.get('endTime', 0))}
 • Liquidity: {'Good' if market['totalVolume'] > 2000 else 'Limited'}
 
 """

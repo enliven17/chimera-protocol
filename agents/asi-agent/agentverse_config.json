@@ -1,0 +1,66 @@
+{
+  "name": "chimera-market-analyzer",
+  "description": "ChimeraProtocol ASI Alliance Market Analyzer - Uses MeTTa reasoning for intelligent prediction market analysis and contrarian betting strategies",
+  "version": "1.0.0",
+  "author": "ChimeraProtocol Team",
+  "license": "MIT",
+  "tags": [
+    "prediction-markets",
+    "betting",
+    "metta-reasoning",
+    "contrarian-strategy",
+    "market-analysis",
+    "asi-alliance",
+    "defi",
+    "hedera"
+  ],
+  "capabilities": [
+    "market_analysis",
+    "contrarian_betting",
+    "metta_reasoning", 
+    "chat_protocol",
+    "real_time_analysis",
+    "risk_assessment"
+  ],
+  "protocols": [
+    {
+      "name": "Chat",
+      "description": "Natural language chat interface for market analysis",
+      "version": "1.0.0"
+    },
+    {
+      "name": "HealthCheck", 
+      "description": "Agent health and status monitoring",
+      "version": "1.0.0"
+    },
+    {
+      "name": "MarketAnalysis",
+      "description": "Structured market analysis using MeTTa reasoning",
+      "version": "1.0.0"
+    }
+  ],
+  "dependencies": {
+    "uagents": ">=0.12.0",
+    "hyperon": ">=0.1.0"
+  },
+  "environment": {
+    "AGENTVERSE_API_KEY": "required",
+    "HEDERA_RPC_URL": "https://testnet.hashio.io/api",
+    "CHIMERA_CONTRACT_ADDRESS": "0x7a9D78D1E5fe688F80D4C2c06Ca4C0407A967644"
+  },
+  "agentverse": {
+    "mailbox": true,
+    "public": true,
+    "category": "finance",
+    "subcategory": "prediction-markets"
+  },
+  "documentation": {
+    "readme": "README.md",
+    "examples": [
+      "Chat: 'analyze markets' - Get market analysis",
+      "Chat: 'recommend bets' - Get betting recommendations", 
+      "Chat: 'health' - Check agent status",
+      "Protocol: Send MarketAnalysis message for structured analysis"
+    ]
+  }
+}
