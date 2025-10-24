@@ -49,7 +49,10 @@ async function mintWPYUSDForUser(userAddress, amount, sourceTxHash) {
     console.log('🌉 Bridge Operator: Minting wPYUSD for user...');
     
     // Setup Hedera provider and signer
-    const provider = new ethers.JsonRpcProvider(HEDERA_RPC_URL);
+    const provider = new ethers.JsonRpcProvider(HEDERA_RPC_URL, {
+      name: 'hedera-testnet',
+      chainId: 296
+    });
     const signer = new ethers.Wallet(BRIDGE_OPERATOR_PRIVATE_KEY, provider);
     
     console.log(`👤 User: ${userAddress}`);
