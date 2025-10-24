@@ -8,13 +8,21 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 import { 
   ArrowRightLeft, 
   AlertTriangle, 
   CheckCircle,
   ExternalLink,
   Loader2,
-  ArrowDown
+  ArrowDown,
+  Wallet,
+  Clock,
+  DollarSign,
+  Network,
+  Copy,
+  Check,
+  Info
 } from "lucide-react";
 
 import { useAccount, useBalance, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
@@ -85,13 +93,47 @@ export function PYUSDBridge() {
   // Form state
   const [amount, setAmount] = useState('');
   const [currentStep, setCurrentStep] = useState<'input' | 'approving' | 'approved' | 'bridging' | 'success'>('input');
+  const [copied, setCopied] = useState(false);
+  const [bridgeProgress, setBridgeProgress] = useState(0);
   
   // Transaction hooks
   const { writeContract, data: hash, error: writeError, isPending: isWritePending } = useWriteContract();
-  const { isSuccess: isConfirmed, isLoading: isConfirming, error: receiptError } = useWaitForTransactionReceipt({ hash });
+  const { isSuccess: isConfirmed, isLoading: isConfirming } = useWaitForTransactionReceipt({ hash });
   
   // Bridge transaction state - use the hash from writeContract
   const { isSuccess: isBridgeConfirmed } = useWaitForTransactionReceipt({ hash });
+
+  // Copy to clipboard function
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Progress tracking
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    
+    if (currentStep === 'approving') {
+      setBridgeProgress(25);
+    } else if (currentStep === 'approved') {
+      setBridgeProgress(50);
+    } else if (currentStep === 'bridging') {
+      setBridgeProgress(75);
+      // Simulate progress during bridging
+      interval = setInterval(() => {
+        setBridgeProgress(prev => Math.min(prev + 1, 95));
+      }, 200);
+    } else if (currentStep === 'success') {
+      setBridgeProgress(100);
+    } else {
+      setBridgeProgress(0);
+    }
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [currentStep]);
 
   // Handle approval transaction submission
   useEffect(() => {
@@ -335,254 +377,373 @@ export function PYUSDBridge() {
     parseFloat(formatUnits(balance.value, balance.decimals)) >= parseFloat(amount) : false;
 
   return (
-    <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50">
-      <CardHeader>
-        <CardTitle className="flex items-center space-x-2 text-white">
-          <ArrowRightLeft className="h-5 w-5 text-[#FFE100]" />
-          <span>Bridge PYUSD</span>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        {/* Wallet Connection */}
-        <div className="flex justify-center">
-          <ConnectButton />
-        </div>
-
-        {/* Network Selection */}
-        <div className="space-y-4">
-          <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
-            <div>
-              <h3 className="font-semibold text-white">From</h3>
-              <p className="text-sm text-gray-300">Ethereum Sepolia</p>
-            </div>
-            <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30">
-              PYUSD
-            </Badge>
-          </div>
-          
-          <div className="flex justify-center">
-            <ArrowDown className="h-6 w-6 text-[#FFE100]" />
-          </div>
-          
-          <div className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg">
-            <div>
-              <h3 className="font-semibold text-white">To</h3>
-              <p className="text-sm text-gray-300">Hedera Testnet</p>
-            </div>
-            <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30">
-              wPYUSD
-            </Badge>
-          </div>
-        </div>
-
-        <Separator className="bg-gray-700" />
-
-        {/* Amount Input */}
-        <div className="space-y-2">
-          <Label htmlFor="amount" className="text-sm font-medium text-white">
-            Amount to Bridge
-          </Label>
-          <Input
-            id="amount"
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="0.00"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-[#FFE100] focus:ring-[#FFE100]/20"
-            disabled={currentStep !== 'input'}
-          />
-          <div className="flex justify-between text-xs text-gray-300">
-            <span>Available Balance:</span>
-            <span>
-              {balance ? `${parseFloat(formatUnits(balance.value, balance.decimals)).toFixed(4)} PYUSD` : '0 PYUSD'}
-            </span>
-          </div>
-        </div>
-
-        {/* Destination Info */}
-        {isConnected && (
-          <div className="bg-gray-800/30 rounded-lg p-4">
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-300">Destination Address:</span>
-              <span className="text-sm text-white font-mono">
-                {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''}
-              </span>
-            </div>
-            <p className="text-xs text-gray-400 mt-1">
-              wPYUSD will be sent to your connected wallet address
-            </p>
-          </div>
-        )}
-
-        {/* Bridge Info */}
-        <div className="bg-gray-800/30 rounded-lg p-4 space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-300">Bridge Fee:</span>
-            <span className="text-white">0.1%</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-300">Estimated Time:</span>
-            <span className="text-white">2-5 minutes</span>
-          </div>
-          <div className="flex justify-between text-sm">
-            <span className="text-gray-300">You will receive:</span>
-            <span className="text-white">
-              {amount ? `~${(parseFloat(amount) * 0.999).toFixed(4)} wPYUSD` : '0 wPYUSD'}
-            </span>
-          </div>
-        </div>
-
-        {/* Status Messages */}
-        {!isConnected && (
-          <Alert className="border-yellow-500/20 bg-yellow-500/10">
-            <AlertTriangle className="h-4 w-4 text-yellow-500" />
-            <AlertDescription className="text-yellow-200">
-              Please connect your wallet to use the bridge. You'll need PYUSD on Sepolia testnet.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {isConnected && chain?.id !== 11155111 && (
-          <Alert className="border-red-500/20 bg-red-500/10">
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-            <AlertDescription className="text-red-200">
-              Please switch to Ethereum Sepolia network to bridge PYUSD
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {amount && !hasEnoughBalance && (
-          <Alert className="border-red-500/20 bg-red-500/10">
-            <AlertTriangle className="h-4 w-4 text-red-500" />
-            <AlertDescription className="text-red-200">
-              Insufficient PYUSD balance. You need PYUSD on Sepolia to use the bridge.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Step Indicator */}
-        {currentStep !== 'input' && (
-          <div className="bg-gray-800/30 rounded-lg p-4">
-            <div className="flex items-center space-x-4">
-              {currentStep === 'approving' && (
-                <>
-                  <Loader2 className="h-5 w-5 text-[#FFE100] animate-spin" />
-                  <div>
-                    <p className="font-medium text-white">Approving PYUSD...</p>
-                    <p className="text-sm text-gray-400">Please confirm the spending cap in your wallet</p>
-                  </div>
-                </>
-              )}
-              {currentStep === 'approved' && (
-                <>
-                  <CheckCircle className="h-5 w-5 text-green-400" />
-                  <div>
-                    <p className="font-medium text-white">Approval Confirmed!</p>
-                    <p className="text-sm text-gray-400">Ready to bridge your PYUSD</p>
-                  </div>
-                </>
-              )}
-              {currentStep === 'bridging' && (
-                <>
-                  <Loader2 className="h-5 w-5 text-[#FFE100] animate-spin" />
-                  <div>
-                    <p className="font-medium text-white">Processing Bridge...</p>
-                    <p className="text-sm text-gray-400">Your PYUSD is being bridged to Hedera as wPYUSD</p>
-                  </div>
-                </>
-              )}
-              {currentStep === 'success' && (
-                <>
-                  <CheckCircle className="h-5 w-5 text-green-400" />
-                  <div>
-                    <p className="font-medium text-white">Bridge Successful!</p>
-                    <p className="text-sm text-gray-400">Your wPYUSD is now available on Hedera</p>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="space-y-3">
-          {currentStep === 'input' && (
-            <Button
-              onClick={handleApprove}
-              disabled={!isConnected || !isValidAmount || !hasEnoughBalance || chain?.id !== 11155111}
-              className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold"
-            >
-              {!isConnected ? 'Connect Wallet' : 
-               chain?.id !== 11155111 ? 'Switch to Sepolia' :
-               !isValidAmount ? 'Enter Amount' :
-               !hasEnoughBalance ? 'Insufficient Balance' :
-               'Approve PYUSD'}
-            </Button>
-          )}
-          
-          {currentStep === 'approving' && (
-            <Button
-              disabled
-              className="w-full bg-gray-600 text-gray-300 cursor-not-allowed"
-            >
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              {isWritePending ? 'Submitting...' : isConfirming ? 'Confirming...' : 'Waiting for Approval...'}
-            </Button>
-          )}
-          
-          {currentStep === 'approved' && (
-            <Button
-              onClick={handleBridge}
-              className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold"
-            >
-              Start Bridge
-            </Button>
-          )}
-          
-          {currentStep === 'bridging' && (
-            <Button
-              disabled
-              className="w-full bg-gray-600 text-gray-300 cursor-not-allowed"
-            >
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              {isWritePending ? 'Submitting...' : isConfirming ? 'Confirming...' : 'Processing...'}
-            </Button>
-          )}
-          
-          {currentStep === 'success' && (
-            <div className="space-y-2">
-              <Button
-                onClick={resetForm}
-                className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold"
-              >
-                Bridge More PYUSD
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="w-full border-gray-700 text-gray-300 hover:bg-gray-800"
-              >
-                <a href="/markets" className="flex items-center justify-center space-x-2">
-                  <span>Start Betting</span>
-                  <ExternalLink className="h-4 w-4" />
-                </a>
-              </Button>
-            </div>
-          )}
-        </div>
-
-        {/* Help Text */}
-        <div className="text-center">
-          <p className="text-xs text-gray-300">
-            Need help? Check our{' '}
-            <a href="/learn" className="text-[#FFE100] hover:underline">
-              bridge guide
-            </a>
+    <div className="max-w-md mx-auto">
+      <Card className="bg-gradient-to-br from-[#1A1F2C] to-[#151923] border-gray-800/50 shadow-2xl">
+        <CardHeader className="text-center pb-4">
+          <CardTitle className="flex items-center justify-center space-x-2 text-white text-xl">
+            <ArrowRightLeft className="h-6 w-6 text-[#FFE100]" />
+            <span>Bridge PYUSD</span>
+          </CardTitle>
+          <p className="text-gray-400 text-sm mt-2">
+            Transfer PYUSD from Ethereum to Hedera seamlessly
           </p>
-        </div>
-      </CardContent>
-    </Card>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Progress Bar */}
+          {currentStep !== 'input' && (
+            <div className="space-y-2">
+              <div className="flex justify-between text-xs text-gray-400">
+                <span>Bridge Progress</span>
+                <span>{bridgeProgress}%</span>
+              </div>
+              <Progress value={bridgeProgress} className="h-2" />
+            </div>
+          )}
+
+          {/* Wallet Connection */}
+          {!isConnected ? (
+            <div className="text-center space-y-4">
+              <div className="p-6 bg-gray-800/30 rounded-lg">
+                <Wallet className="h-12 w-12 text-[#FFE100] mx-auto mb-3" />
+                <h3 className="text-white font-medium mb-2">Connect Your Wallet</h3>
+                <p className="text-gray-400 text-sm mb-4">
+                  Connect your wallet to start bridging PYUSD
+                </p>
+                <ConnectButton />
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Connected Wallet Info */}
+              <div className="bg-gray-800/30 rounded-lg p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-8 h-8 bg-[#FFE100] rounded-full flex items-center justify-center">
+                      <Wallet className="h-4 w-4 text-black" />
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-medium">Connected Wallet</p>
+                      <p className="text-gray-400 text-xs">
+                        {address ? `${address.slice(0, 6)}...${address.slice(-4)}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => copyToClipboard(address || '')}
+                    className="text-gray-400 hover:text-white transition-colors"
+                  >
+                    {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Network Selection */}
+              <div className="space-y-3">
+                <div className="relative">
+                  <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-10 h-10 bg-blue-500/20 rounded-full flex items-center justify-center">
+                          <Network className="h-5 w-5 text-blue-400" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-white">From</h3>
+                          <p className="text-sm text-gray-300">Ethereum Sepolia</p>
+                        </div>
+                      </div>
+                      <Badge className="bg-blue-500/20 text-blue-400 border-blue-500/30 px-3 py-1">
+                        PYUSD
+                      </Badge>
+                    </div>
+                  </div>
+                  
+                  <div className="absolute left-1/2 top-full transform -translate-x-1/2 -translate-y-1/2 z-10">
+                    <div className="bg-[#FFE100] rounded-full p-2">
+                      <ArrowDown className="h-4 w-4 text-black" />
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-700 mt-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <div className="w-10 h-10 bg-purple-500/20 rounded-full flex items-center justify-center">
+                        <Network className="h-5 w-5 text-purple-400" />
+                      </div>
+                      <div>
+                        <h3 className="font-medium text-white">To</h3>
+                        <p className="text-sm text-gray-300">Hedera Testnet</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-purple-500/20 text-purple-400 border-purple-500/30 px-3 py-1">
+                      wPYUSD
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+
+              <Separator className="bg-gray-700" />
+
+              {/* Amount Input */}
+              <div className="space-y-3">
+                <Label htmlFor="amount" className="text-sm font-medium text-white flex items-center space-x-2">
+                  <DollarSign className="h-4 w-4" />
+                  <span>Amount to Bridge</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="amount"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    placeholder="0.00"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                    className="bg-gray-800/50 border-gray-700 text-white placeholder-gray-400 focus:border-[#FFE100] focus:ring-[#FFE100]/20 text-lg h-12 pr-16"
+                    disabled={currentStep !== 'input'}
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <span className="text-gray-400 text-sm font-medium">PYUSD</span>
+                  </div>
+                </div>
+                
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-gray-400">Available Balance:</span>
+                  <div className="flex items-center space-x-2">
+                    <span className="text-xs text-white font-medium">
+                      {balance ? `${parseFloat(formatUnits(balance.value, balance.decimals)).toFixed(4)} PYUSD` : '0 PYUSD'}
+                    </span>
+                    {balance && parseFloat(formatUnits(balance.value, balance.decimals)) > 0 && (
+                      <button
+                        onClick={() => setAmount(formatUnits(balance.value, balance.decimals))}
+                        className="text-xs text-[#FFE100] hover:text-[#E6CC00] transition-colors"
+                        disabled={currentStep !== 'input'}
+                      >
+                        MAX
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Amount Buttons */}
+                {balance && parseFloat(formatUnits(balance.value, balance.decimals)) > 0 && currentStep === 'input' && (
+                  <div className="flex space-x-2">
+                    {[25, 50, 75].map((percentage) => {
+                      const maxAmount = parseFloat(formatUnits(balance.value, balance.decimals));
+                      const quickAmount = (maxAmount * percentage / 100).toFixed(2);
+                      return (
+                        <button
+                          key={percentage}
+                          onClick={() => setAmount(quickAmount)}
+                          className="flex-1 py-2 px-3 bg-gray-700/50 hover:bg-gray-700 rounded-lg text-xs text-gray-300 hover:text-white transition-colors"
+                        >
+                          {percentage}%
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Bridge Summary */}
+              {amount && parseFloat(amount) > 0 && (
+                <div className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 rounded-lg p-4 border border-gray-600">
+                  <h3 className="text-white font-medium mb-3 flex items-center space-x-2">
+                    <Info className="h-4 w-4 text-[#FFE100]" />
+                    <span>Bridge Summary</span>
+                  </h3>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">Amount:</span>
+                      <span className="text-white font-medium">{amount} PYUSD</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">Bridge Fee (0.1%):</span>
+                      <span className="text-white">{(parseFloat(amount) * 0.001).toFixed(4)} PYUSD</span>
+                    </div>
+                    <Separator className="bg-gray-600" />
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-300">You will receive:</span>
+                      <span className="text-[#FFE100] font-medium">
+                        {(parseFloat(amount) * 0.999).toFixed(4)} wPYUSD
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs">
+                      <span className="text-gray-400 flex items-center space-x-1">
+                        <Clock className="h-3 w-3" />
+                        <span>Estimated Time:</span>
+                      </span>
+                      <span className="text-gray-300">2-5 minutes</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Status Messages */}
+              {chain?.id !== 11155111 && (
+                <Alert className="border-red-500/20 bg-red-500/10">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <AlertDescription className="text-red-200">
+                    Please switch to Ethereum Sepolia network to bridge PYUSD
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {amount && !hasEnoughBalance && (
+                <Alert className="border-red-500/20 bg-red-500/10">
+                  <AlertTriangle className="h-4 w-4 text-red-500" />
+                  <AlertDescription className="text-red-200">
+                    Insufficient PYUSD balance. You need PYUSD on Sepolia to use the bridge.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {/* Step Indicator */}
+              {currentStep !== 'input' && (
+                <div className="bg-gradient-to-r from-gray-800/50 to-gray-700/50 rounded-lg p-4 border border-gray-600">
+                  <div className="flex items-start space-x-4">
+                    <div className="flex-shrink-0 mt-1">
+                      {currentStep === 'approving' && (
+                        <Loader2 className="h-6 w-6 text-[#FFE100] animate-spin" />
+                      )}
+                      {currentStep === 'approved' && (
+                        <CheckCircle className="h-6 w-6 text-green-400" />
+                      )}
+                      {currentStep === 'bridging' && (
+                        <Loader2 className="h-6 w-6 text-[#FFE100] animate-spin" />
+                      )}
+                      {currentStep === 'success' && (
+                        <CheckCircle className="h-6 w-6 text-green-400" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      {currentStep === 'approving' && (
+                        <>
+                          <p className="font-medium text-white">Approving PYUSD...</p>
+                          <p className="text-sm text-gray-400 mt-1">Please confirm the spending cap in your wallet</p>
+                          {hash && (
+                            <p className="text-xs text-[#FFE100] mt-2">
+                              TX: {hash.slice(0, 10)}...{hash.slice(-8)}
+                            </p>
+                          )}
+                        </>
+                      )}
+                      {currentStep === 'approved' && (
+                        <>
+                          <p className="font-medium text-white">Approval Confirmed!</p>
+                          <p className="text-sm text-gray-400 mt-1">Ready to bridge your PYUSD</p>
+                        </>
+                      )}
+                      {currentStep === 'bridging' && (
+                        <>
+                          <p className="font-medium text-white">Processing Bridge...</p>
+                          <p className="text-sm text-gray-400 mt-1">Your PYUSD is being bridged to Hedera as wPYUSD</p>
+                          {hash && (
+                            <p className="text-xs text-[#FFE100] mt-2">
+                              TX: {hash.slice(0, 10)}...{hash.slice(-8)}
+                            </p>
+                          )}
+                        </>
+                      )}
+                      {currentStep === 'success' && (
+                        <>
+                          <p className="font-medium text-white">Bridge Successful! 🎉</p>
+                          <p className="text-sm text-gray-400 mt-1">Your wPYUSD is now available on Hedera</p>
+                          {hash && (
+                            <button
+                              onClick={() => copyToClipboard(hash)}
+                              className="text-xs text-[#FFE100] hover:text-[#E6CC00] mt-2 flex items-center space-x-1"
+                            >
+                              <span>TX: {hash.slice(0, 10)}...{hash.slice(-8)}</span>
+                              {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                            </button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                {currentStep === 'input' && (
+                  <Button
+                    onClick={handleApprove}
+                    disabled={!isValidAmount || !hasEnoughBalance || chain?.id !== 11155111}
+                    className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold h-12 text-base"
+                  >
+                    {chain?.id !== 11155111 ? 'Switch to Sepolia' :
+                     !isValidAmount ? 'Enter Amount' :
+                     !hasEnoughBalance ? 'Insufficient Balance' :
+                     'Approve PYUSD'}
+                  </Button>
+                )}
+                
+                {currentStep === 'approving' && (
+                  <Button
+                    disabled
+                    className="w-full bg-gray-600 text-gray-300 cursor-not-allowed h-12"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    {isWritePending ? 'Submitting...' : isConfirming ? 'Confirming...' : 'Waiting for Approval...'}
+                  </Button>
+                )}
+                
+                {currentStep === 'approved' && (
+                  <Button
+                    onClick={handleBridge}
+                    className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold h-12 text-base"
+                  >
+                    Start Bridge
+                  </Button>
+                )}
+                
+                {currentStep === 'bridging' && (
+                  <Button
+                    disabled
+                    className="w-full bg-gray-600 text-gray-300 cursor-not-allowed h-12"
+                  >
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    {isWritePending ? 'Submitting...' : isConfirming ? 'Confirming...' : 'Processing...'}
+                  </Button>
+                )}
+                
+                {currentStep === 'success' && (
+                  <div className="space-y-3">
+                    <Button
+                      onClick={resetForm}
+                      className="w-full bg-gradient-to-r from-[#FFE100] to-[#E6CC00] hover:from-[#E6CC00] hover:to-[#CCAA00] text-black font-semibold h-12 text-base"
+                    >
+                      Bridge More PYUSD
+                    </Button>
+                    <Button
+                      asChild
+                      variant="outline"
+                      className="w-full border-gray-700 text-gray-300 hover:bg-gray-800 h-12"
+                    >
+                      <a href="/markets" className="flex items-center justify-center space-x-2">
+                        <span>Start Betting</span>
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              {/* Help Text */}
+              <div className="text-center pt-2">
+                <p className="text-xs text-gray-400">
+                  Need help? Check our{' '}
+                  <a href="/learn" className="text-[#FFE100] hover:text-[#E6CC00] transition-colors">
+                    bridge guide
+                  </a>
+                </p>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }
