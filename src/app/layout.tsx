@@ -14,24 +14,24 @@ const bricolage = Bricolage_Grotesque({ subsets: ["latin"] });
 // Global Metadata
 export const metadata = {
   title: {
-    default: "ChimeraAI – AI-Powered Prediction Markets",
-    template: "%s | ChimeraAI",
+    default: "Chimera – AI-Powered Prediction Markets",
+    template: "%s | Chimera",
   },
   description:
     "AI-powered prediction markets on Hedera EVM with autonomous agents, Pyth Oracle integration, and PYUSD betting. Features ASI Alliance reasoning and Lit Protocol secure execution.",
   metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
   openGraph: {
-    title: "ChimeraAI – AI-Powered Prediction Markets",
+    title: "Chimera – AI-Powered Prediction Markets",
     description:
       "AI-powered prediction markets with autonomous agents, oracle integration, and secure execution on Hedera EVM.",
     url: process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
-    siteName: "ChimeraAI",
+    siteName: "Chimera",
     images: [
       {
         url: "/favicon.ico",
         width: 1200,
         height: 630,
-        alt: "ChimeraAI",
+        alt: "Chimera",
       },
     ],
     locale: "en_US",
@@ -39,7 +39,7 @@ export const metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "ChimeraAI – AI-Powered Prediction Markets",
+    title: "Chimera – AI-Powered Prediction Markets",
     description:
       "AI-powered prediction markets with autonomous agents on Hedera EVM.",
     creator: "@chimeraai",
